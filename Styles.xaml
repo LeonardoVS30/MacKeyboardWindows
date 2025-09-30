@@ -46,6 +46,21 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
         <Setter Property="Padding" Value="2"/>
+        <!-- AÑADE ESTE SETTER COMPLETO -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="3"
+                            Padding="{TemplateBinding Padding}">
+                        <!-- ItemsPresenter es donde se colocarán los MenuItem -->
+                        <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style TargetType="{x:Type MenuItem}">
@@ -94,7 +109,8 @@
                                     CornerRadius="3"
                                     Padding="2"
                                     SnapsToDevicePixels="True">
-                                <ScrollViewer CanContentScroll="True">
+
+                                <ScrollViewer CanContentScroll="True" Style="{StaticResource MenuScrollViewerStyle}">
                                     <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
                                 </ScrollViewer>
                             </Border>
@@ -124,4 +140,14 @@
         <Setter Property="Background" Value="{DynamicResource KeyBorderColor}"/>
         <Setter Property="Margin" Value="4,6,4,6"/>
     </Style>
+
+
+    <!-- ESTILO AÑADIDO para el ScrollViewer del menú -->
+    <Style x:Key="MenuScrollViewerStyle" TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
 </ResourceDictionary>
+    
+    
+    
