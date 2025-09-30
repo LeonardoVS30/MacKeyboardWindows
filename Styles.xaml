@@ -48,18 +48,69 @@
         <Setter Property="Padding" Value="2"/>
     </Style>
 
-    <Style TargetType="MenuItem">
+    <Style TargetType="{x:Type MenuItem}">
         <Setter Property="Padding" Value="8,5"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="MenuItem">
-                    <Border Name="Border" Padding="{TemplateBinding Padding}" Background="Transparent">
-                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
-                    </Border>
+                <ControlTemplate TargetType="{x:Type MenuItem}">
+                    <Grid>
+                        <!-- Borde principal que contiene el texto del menú -->
+                        <Border x:Name="Border"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="HasSubMenu" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Contenido del Header (ej. "Appearance") -->
+                                <ContentPresenter ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center"/>
+
+                                <!-- Flecha que indica que hay un submenú -->
+                                <Path x:Name="Arrow" Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      Margin="8,0,0,0"
+                                      Data="M 0 0 L 4 4 L 0 8 Z"
+                                      Fill="{DynamicResource KeyForegroundColor}"
+                                      Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- ¡ESTA ES LA PARTE CLAVE! El Popup para el submenú -->
+                        <Popup x:Name="SubMenuPopup"
+                               Placement="Right"
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               Focusable="false"
+                               AllowsTransparency="true"
+                               PopupAnimation="Fade">
+                            <!-- El contenedor del submenú, con el mismo estilo del menú principal -->
+                            <Border Name="SubmenuBorder"
+                                    Background="{DynamicResource KeyBackgroundColor}"
+                                    BorderBrush="{DynamicResource KeyBorderColor}"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="2"
+                                    SnapsToDevicePixels="True">
+                                <ScrollViewer CanContentScroll="True">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+
+                    <!-- Triggers para cambiar la apariencia -->
                     <ControlTemplate.Triggers>
+                        <!-- Cuando el ratón está encima -->
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource KeyBackgroundPressedColor}"/>
                             <Setter TargetName="Border" Property="CornerRadius" Value="3"/>
+                        </Trigger>
+                        <!-- Muestra la flecha si el MenuItem tiene hijos -->
+                        <Trigger Property="HasItems" Value="True">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -73,5 +124,4 @@
         <Setter Property="Background" Value="{DynamicResource KeyBorderColor}"/>
         <Setter Property="Margin" Value="4,6,4,6"/>
     </Style>
-
 </ResourceDictionary>

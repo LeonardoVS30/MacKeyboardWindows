@@ -84,6 +84,21 @@ namespace MacKeyboardWindows
             }
         }
 
+        // --- MÉTODO NUEVO AÑADIDO ---
+        private void Zoom_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string tag)
+            {
+                // Usamos CultureInfo.InvariantCulture para asegurar que el punto decimal '.' se interprete correctamente.
+                if (double.TryParse(tag, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double scaleFactor))
+                {
+                    WindowScaleTransform.ScaleX = scaleFactor;
+                    WindowScaleTransform.ScaleY = scaleFactor;
+                }
+            }
+        }
+
+
         private void Theme_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem menuItem && menuItem.Tag is string theme)
