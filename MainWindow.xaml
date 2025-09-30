@@ -3,287 +3,418 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Mac Keyboard for Windows" 
         Height="350" Width="1000"
+        
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        Topmost="True"
-        ResizeMode="NoResize"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown"
-        Loaded="MainWindow_Loaded">
+        Topmost="True" 
+        
+        Loaded="MainWindow_Loaded"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
-    <Border x:Name="MainBorder" CornerRadius="10" BorderThickness="1" Opacity="0.95">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="#40000000"/>
-        </Border.Effect>
+    <Border Name="MainBorder" 
+            Background="{DynamicResource WindowBackgroundColor}" 
+            CornerRadius="8" 
+            BorderBrush="{DynamicResource WindowBorderColor}"
+            BorderThickness="1">
 
-        <!-- Contenedor principal optimizado -->
-        <Grid Margin="15">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Fila 0: Título y sugerencias -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                <TextBlock x:Name="SuggestionText" Text="No Suggestions" FontSize="10" Margin="10"/>
-            </StackPanel>
+            <!-- Fila 0: Barra de título con botón de Opciones a la izquierda -->
+            <Grid Grid.Row="0" Margin="5,5,5,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- BOTÓN DE OPCIONES CON MENÚ DESPLEGABLE -->
+                <Border Grid.Column="0" Style="{StaticResource TitleBarButtonStyle}" 
+                        MouseLeftButtonDown="OptionsButton_Click">
+                    <TextBlock Text="&#xE700;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
+
+                    <Border.ContextMenu>
+                        <ContextMenu Style="{StaticResource AppContextMenuStyle}">
+                            <MenuItem Header="Appearance">
+                                <MenuItem Header="System Theme" Tag="System" Click="Theme_Click"/>
+                                <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
+                                <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
+                            </MenuItem>
+                            <MenuItem Header="Opacity">
+                                <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
+                                <MenuItem Header="90%" Tag="0.9" Click="Opacity_Click"/>
+                                <MenuItem Header="80%" Tag="0.8" Click="Opacity_Click"/>
+                                <MenuItem Header="70%" Tag="0.7" Click="Opacity_Click"/>
+                            </MenuItem>
+                            <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                            <MenuItem Header="Close" Click="CloseMenuItem_Click"/>
+                        </ContextMenu>
+                    </Border.ContextMenu>
+                </Border>
+
+                <TextBlock Grid.Column="1" 
+                           x:Name="SuggestionText" Text="No Suggestions" 
+                           Foreground="{DynamicResource KeyForegroundColor}" FontSize="12" Opacity="0.6" 
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Border Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="MinimizeButton_Click">
+                        <TextBlock Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
+                    </Border>
+                    <Border Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="CloseButton_Click">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
 
             <!-- Fila 1: Teclas de función (F1-F12) -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Esc" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F1" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="2" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F2" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="3" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F3" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="4" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F4" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="5" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F5" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="6" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F6" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="7" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F7" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="8" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F8" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="9" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F9" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="10" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F10" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="11" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F11" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="12" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="F12" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="13" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Print" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="14" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Scroll" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="15" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Pause" Style="{StaticResource SmallKeyTextStyle}"/>
                 </Border>
-            </StackPanel>
+            </Grid>
 
             <!-- Fila 2: Números y símbolos -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="1.5*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="`" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="1" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="2" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="2" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="3" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="3" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="4" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="4" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="5" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="5" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="6" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="6" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="7" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="7" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="8" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="8" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="9" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="9" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="10" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="0" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="11" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="-" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="12" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="=" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacWideKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
-                    <TextBlock Text="⌫" Style="{StaticResource KeyTextStyle}" FontSize="14"/>
+                <Border Grid.Column="13" Style="{StaticResource KeyStyle}">
+                    <TextBlock Text="&#xE756;" FontFamily="Segoe Fluent Icons" Style="{StaticResource KeyTextStyle}" FontSize="12"/>
                 </Border>
-            </StackPanel>
+            </Grid>
 
             <!-- Fila 3: QWERTY -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                <Border Style="{StaticResource MacWideKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.5*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Tab" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="q" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="2" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="w" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="3" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="e" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="4" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="r" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="5" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="t" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="6" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="y" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="7" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="u" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="8" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="i" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="9" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="o" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="10" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="p" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="11" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="[" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="12" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="]" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="13" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="\" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-            </StackPanel>
+            </Grid>
 
             <!-- Fila 4: ASDF -->
-            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                <Border Style="{StaticResource MacExtraWideKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.8*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="1.8*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Caps Lock" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="a" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="2" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="s" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="3" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="d" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="4" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="f" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="5" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="g" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="6" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="h" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="7" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="j" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="8" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="k" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="9" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="l" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="10" Style="{StaticResource KeyStyle}">
                     <TextBlock Text=";" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="11" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="'" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacExtraWideKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="12" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Enter" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-            </StackPanel>
+            </Grid>
 
             <!-- Fila 5: ZXCV -->
-            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                <Border Style="{StaticResource MacExtraWideKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+            <Grid Grid.Row="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.2*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="2.2*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Shift" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="z" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="2" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="x" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="3" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="c" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="4" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="v" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="5" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="b" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="6" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="n" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="7" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="m" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="8" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="," Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="9" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="." Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="10" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="/" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacExtraWideKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="11" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Shift" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-            </StackPanel>
+            </Grid>
 
             <!-- Fila 6: Teclas de función final -->
-            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center">
-                <Border Style="{StaticResource MacSpecialKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.25*"/>
+                    <ColumnDefinition Width="1.25*"/>
+                    <ColumnDefinition Width="1.25*"/>
+                    <ColumnDefinition Width="6*"/>
+                    <ColumnDefinition Width="1.25*"/>
+                    <ColumnDefinition Width="1.25*"/>
+                    <ColumnDefinition Width="1.25*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Ctrl" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacSpecialKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
-                    <TextBlock Text="Win" Style="{StaticResource KeyTextStyle}"/>
+                <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
+                    <TextBlock Text="&#xE770;" FontFamily="Segoe Fluent Icons" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacSpecialKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="2" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Alt" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacSpaceKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="3" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Space" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacSpecialKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="4" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Alt" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacSpecialKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
-                    <TextBlock Text="Win" Style="{StaticResource KeyTextStyle}"/>
+                <Border Grid.Column="5" Style="{StaticResource KeyStyle}">
+                    <TextBlock Text="&#xE770;" FontFamily="Segoe Fluent Icons" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Style="{StaticResource MacSpecialKeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown" MouseLeftButtonUp="Key_MouseLeftButtonUp">
+                <Border Grid.Column="6" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="Ctrl" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-            </StackPanel>
+            </Grid>
         </Grid>
     </Border>
 </Window>

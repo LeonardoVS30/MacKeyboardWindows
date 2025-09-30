@@ -1,0 +1,11 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	<SolidColorBrush x:Key="WindowBackgroundColor" Color="#F3F3F3"/>
+	<SolidColorBrush x:Key="KeyBackgroundColor" Color="#FFFFFF"/>
+	<SolidColorBrush x:Key="KeyBackgroundPressedColor" Color="#DCEAF7"/>
+	<!-- NUEVA LÍNEA -->
+	<SolidColorBrush x:Key="KeyBorderColor" Color="#E0E0E0"/>
+	<SolidColorBrush x:Key="KeyForegroundColor" Color="#333333"/>
+	<SolidColorBrush x:Key="WindowBorderColor" Color="#EAEAEA"/>
+	<SolidColorBrush x:Key="TitleBarButtonHoverColor" Color="#E5E5E5"/>
+</ResourceDictionary>

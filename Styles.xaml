@@ -1,0 +1,77 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Estilo para las teclas (sin cambios) -->
+    <Style x:Key="KeyStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource KeyBackgroundColor}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource KeyBorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Margin" Value="2,3,2,3"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- Estilo para el texto de las teclas (sin cambios) -->
+    <Style x:Key="KeyTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+
+    <Style x:Key="SmallKeyTextStyle" BasedOn="{StaticResource KeyTextStyle}" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+    </Style>
+
+    <!-- Estilo para los botones de la barra de título (sin cambios) -->
+    <Style x:Key="TitleBarButtonStyle" TargetType="Border">
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Margin" Value="4,0,0,0"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource KeyForegroundColor}" />
+                <Setter Property="Opacity" Value="0.1" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Estilos para el Menú (sin cambios) -->
+    <Style x:Key="AppContextMenuStyle" TargetType="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource KeyBackgroundColor}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource KeyBorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
+        <Setter Property="Padding" Value="2"/>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border Name="Border" Padding="{TemplateBinding Padding}" Background="Transparent">
+                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource KeyBackgroundPressedColor}"/>
+                            <Setter TargetName="Border" Property="CornerRadius" Value="3"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ¡ESTILO AÑADIDO! Esta es la corrección -->
+    <Style x:Key="AppMenuSeparatorStyle" TargetType="Separator">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource KeyBorderColor}"/>
+        <Setter Property="Margin" Value="4,6,4,6"/>
+    </Style>
+
+</ResourceDictionary>

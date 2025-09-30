@@ -1,17 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Controls;
-using Microsoft.Win32;
-using MacKeyboardWindows.Services;
 using MacKeyboardWindows.Models;
+using MacKeyboardWindows.Services;
+using Microsoft.Win32;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 
 namespace MacKeyboardWindows
 {
     public partial class MainWindow : Window
     {
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_NOACTIVATE = 0x08000000;
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
         private readonly KeyboardService _keyboardService;
         private readonly KeyboardHookService _keyboardHookService;
         private readonly Dictionary<string, Border> _keyControls = new();
@@ -19,20 +30,27 @@ namespace MacKeyboardWindows
 
         public MainWindow()
         {
+            ApplySystemTheme();
             InitializeComponent();
             _keyboardService = new KeyboardService();
             _keyboardHookService = new KeyboardHookService();
-
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var helper = new WindowInteropHelper(this);
+            var hwnd = helper.Handle;
+            var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             InitializeKeyMapping();
-            ApplySystemTheme();
             StartKeyboardHook();
-
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
         }
 
@@ -42,9 +60,78 @@ namespace MacKeyboardWindows
             SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
         }
 
+        // --- Lógica para el menú de opciones ---
+
+        private void OptionsButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.ContextMenu != null)
+            {
+                // Previene que el DragMove se active al hacer clic en el botón
+                e.Handled = true;
+                element.ContextMenu.PlacementTarget = element;
+                element.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void Opacity_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string tag)
+            {
+                if (double.TryParse(tag, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double opacity))
+                {
+                    MainBorder.Opacity = opacity;
+                }
+            }
+        }
+
+        private void Theme_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string theme)
+            {
+                if (theme == "Light") ApplySystemTheme(true);
+                else if (theme == "Dark") ApplySystemTheme(false);
+                else ApplySystemTheme(); // System theme
+            }
+        }
+
+        private void CloseMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
+        // --- Lógica de cambio de tema MODIFICADA para forzar un tema ---
+        private void ApplySystemTheme(bool? forceLight = null)
+        {
+            try
+            {
+                string themeName;
+                if (forceLight.HasValue)
+                {
+                    themeName = forceLight.Value ? "LightTheme" : "DarkTheme";
+                }
+                else
+                {
+                    var useLightTheme = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
+                    themeName = (useLightTheme != null && (int)useLightTheme == 1) ? "LightTheme" : "DarkTheme";
+                }
+
+                var themeUri = new Uri($"Themes/{themeName}.xaml", UriKind.Relative);
+                var styleDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
+                var themeDict = new ResourceDictionary { Source = themeUri };
+
+                Application.Current.Resources.MergedDictionaries.Clear();
+                Application.Current.Resources.MergedDictionaries.Add(styleDict);
+                Application.Current.Resources.MergedDictionaries.Add(themeDict);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not apply the theme: {ex.Message}");
+            }
+        }
+
         private void InitializeKeyMapping()
         {
-            FindKeyControls(MainBorder);
+            FindKeyControls(this);
         }
 
         private void FindKeyControls(DependencyObject parent)
@@ -52,7 +139,6 @@ namespace MacKeyboardWindows
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 var child = VisualTreeHelper.GetChild(parent, i);
-
                 if (child is Border border && border.Child is TextBlock textBlock)
                 {
                     string keyText = textBlock.Text;
@@ -61,7 +147,6 @@ namespace MacKeyboardWindows
                         _keyControls[keyText] = border;
                     }
                 }
-
                 FindKeyControls(child);
             }
         }
@@ -73,6 +158,8 @@ namespace MacKeyboardWindows
             _keyboardHookService.Start();
         }
 
+
+
         private void StopKeyboardHook()
         {
             _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown;
@@ -80,32 +167,22 @@ namespace MacKeyboardWindows
             _keyboardHookService.Stop();
         }
 
-        private void KeyboardHookService_KeyDown(object sender, Key key)
+        private void KeyboardHookService_KeyDown(object sender, Key e)
         {
-            Dispatcher.Invoke(() =>
-            {
-                if (!_pressedKeys.ContainsKey(key))
-                {
-                    _pressedKeys[key] = GetKeyDisplayText(key);
-                    HighlightKey(key, true);
-                }
-            });
+            Dispatcher.Invoke(() => HighlightKey(e, true));
         }
 
-        private void KeyboardHookService_KeyUp(object sender, Key key)
+        private void KeyboardHookService_KeyUp(object sender, Key e)
         {
-            Dispatcher.Invoke(() =>
-            {
-                if (_pressedKeys.Remove(key))
-                {
-                    HighlightKey(key, false);
-                }
-            });
+            Dispatcher.Invoke(() => HighlightKey(e, false));
         }
 
         private static string GetKeyDisplayText(Key key)
         {
-            return KeyMapping.VirtualKeyToDisplayText.TryGetValue(key, out string? displayText)
+            if (key == Key.LWin || key == Key.RWin) return "\uE770";
+            if (key == Key.Back) return "\uE756";
+
+            return KeyMapping.VirtualKeyToDisplayText.TryGetValue(key, out string displayText)
                 ? displayText
                 : key.ToString();
         }
@@ -114,17 +191,16 @@ namespace MacKeyboardWindows
         {
             string displayText = GetKeyDisplayText(key);
 
-            if (_keyControls.TryGetValue(displayText, out Border? border))
+            if (_keyControls.TryGetValue(displayText, out Border border))
             {
-                bool isDarkTheme = IsSystemUsingDarkTheme();
-                var pressedColor = isDarkTheme ?
-                    (Color)FindResource("DarkKeyPressedColor") :
-                    (Color)FindResource("LightKeyPressedColor");
-                var normalColor = isDarkTheme ?
-                    (Color)FindResource("DarkKeyColor") :
-                    (Color)FindResource("LightKeyColor");
-
-                border.Background = new SolidColorBrush(isPressed ? pressedColor : normalColor);
+                if (isPressed)
+                {
+                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                }
+                else
+                {
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                }
             }
         }
 
@@ -132,161 +208,26 @@ namespace MacKeyboardWindows
         {
             if (e.Category == UserPreferenceCategory.General)
             {
-                Dispatcher.Invoke(ApplySystemTheme);
-            }
-        }
-
-        private void ApplySystemTheme()
-        {
-            bool isDarkTheme = IsSystemUsingDarkTheme();
-
-            if (isDarkTheme)
-            {
-                ApplyDarkTheme();
-            }
-            else
-            {
-                ApplyLightTheme();
-            }
-        }
-
-        private static bool IsSystemUsingDarkTheme()
-        {
-            try
-            {
-                var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-                var value = key?.GetValue("AppsUseLightTheme");
-                return value is int intValue && intValue == 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private void ApplyLightTheme()
-        {
-            var backgroundColor = (Color)FindResource("LightBackgroundColor");
-            var borderColor = (Color)FindResource("LightKeyBorderColor");
-
-            MainBorder.Background = new SolidColorBrush(backgroundColor);
-            MainBorder.BorderBrush = new SolidColorBrush(borderColor);
-
-            ApplyThemeToAllKeys(false);
-        }
-
-        private void ApplyDarkTheme()
-        {
-            var backgroundColor = (Color)FindResource("DarkBackgroundColor");
-            var borderColor = (Color)FindResource("DarkKeyBorderColor");
-
-            MainBorder.Background = new SolidColorBrush(backgroundColor);
-            MainBorder.BorderBrush = new SolidColorBrush(borderColor);
-
-            ApplyThemeToAllKeys(true);
-        }
-
-        private void ApplyThemeToAllKeys(bool isDarkTheme)
-        {
-            var keyColor = isDarkTheme ?
-                (Color)FindResource("DarkKeyColor") :
-                (Color)FindResource("LightKeyColor");
-
-            var specialKeyColor = isDarkTheme ?
-                (Color)FindResource("DarkSpecialKeyColor") :
-                (Color)FindResource("LightSpecialKeyColor");
-
-            var textColor = isDarkTheme ?
-                (Color)FindResource("DarkTextColor") :
-                (Color)FindResource("LightTextColor");
-
-            var borderColor = isDarkTheme ?
-                (Color)FindResource("DarkKeyBorderColor") :
-                (Color)FindResource("LightKeyBorderColor");
-
-            ApplyThemeToChildren(MainBorder, keyColor, specialKeyColor, textColor, borderColor);
-        }
-
-        private void ApplyThemeToChildren(DependencyObject parent, Color keyColor, Color specialKeyColor, Color textColor, Color borderColor)
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-
-                if (child is Border border)
-                {
-                    border.BorderBrush = new SolidColorBrush(borderColor);
-
-                    // Solo cambiar el color si la tecla no está presionada
-                    if (border.Child is TextBlock textBlock && !_pressedKeys.ContainsValue(textBlock.Text))
-                    {
-                        if (border.Style == FindResource("MacSpecialKeyStyle") ||
-                            border.Style == FindResource("MacWideKeyStyle") ||
-                            border.Style == FindResource("MacExtraWideKeyStyle") ||
-                            border.Style == FindResource("MacSpaceKeyStyle"))
-                        {
-                            border.Background = new SolidColorBrush(specialKeyColor);
-                        }
-                        else
-                        {
-                            border.Background = new SolidColorBrush(keyColor);
-                        }
-                    }
-                }
-                else if (child is TextBlock textBlock)
-                {
-                    textBlock.Foreground = new SolidColorBrush(textColor);
-                }
-
-                ApplyThemeToChildren(child, keyColor, specialKeyColor, textColor, borderColor);
+                Dispatcher.Invoke(() => ApplySystemTheme());
             }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            DragMove();
-        }
-
-        private void Key_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Border border && border.Child is TextBlock textBlock)
+            if (e.ButtonState == MouseButtonState.Pressed && e.Handled == false)
             {
-                string keyText = textBlock.Text;
-                SimulateKeyPress(keyText);
-                e.Handled = true;
+                DragMove();
             }
         }
 
-        private void Key_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
-            e.Handled = true;
+            this.WindowState = WindowState.Minimized;
         }
 
-        private void SimulateKeyPress(string keyText)
+        private void CloseButton_Click(object sender, MouseButtonEventArgs e)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(keyText)) return;
-
-                if (keyText.Length > 1 || keyText == " " || keyText == "⌫" ||
-                    keyText == "`" || keyText == "[" || keyText == "]" ||
-                    keyText == "\\" || keyText == ";" || keyText == "'" ||
-                    keyText == "," || keyText == "." || keyText == "/" ||
-                    keyText == "-" || keyText == "=")
-                {
-                    _keyboardService.PressSpecialKey(keyText);
-                }
-                else
-                {
-                    // Teclas de caracteres simples
-                    char character = keyText[0];
-                    _keyboardService.PressKey(character);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al simular tecla {keyText}: {ex.Message}");
-            }
+            this.Close();
         }
     }
 }
