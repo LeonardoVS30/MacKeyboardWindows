@@ -13,7 +13,7 @@
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <Border Name="MainBorder" 
-            Width="1000" Height="350" 
+            Width="1000" Height="425" 
             Background="{DynamicResource WindowBackgroundColor}" 
             CornerRadius="8" 
             BorderBrush="{DynamicResource WindowBorderColor}"
@@ -77,11 +77,6 @@
                         </ContextMenu>
                     </Border.ContextMenu>
                 </Border>
-
-                <TextBlock Grid.Column="1" 
-                           x:Name="SuggestionText" Text="No Suggestions" 
-                           Foreground="{DynamicResource KeyForegroundColor}" FontSize="12" Opacity="0.6" 
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Border Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="MinimizeButton_Click">
