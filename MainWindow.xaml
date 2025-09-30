@@ -304,7 +304,7 @@
                     <ColumnDefinition Width="1.8*"/>
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Style="{StaticResource KeyStyle}">
-                    <TextBlock Text="Caps Lock" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock Text="Bloq Mayus" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource KeyStyle}">
                     <TextBlock Text="a" Style="{StaticResource KeyTextStyle}"/>

@@ -194,8 +194,10 @@ namespace MacKeyboardWindows
 
         private static string GetKeyDisplayText(Key key)
         {
+            if (key == Key.Escape) return "Esc"; // <-- AÑADE ESTA LÍNEA
             if (key == Key.LWin || key == Key.RWin) return "\uE770";
             if (key == Key.Back) return "\uE756";
+            if (key == Key.Capital) return "Bloq Mayus";
 
             return KeyMapping.VirtualKeyToDisplayText.TryGetValue(key, out string displayText)
                 ? displayText
