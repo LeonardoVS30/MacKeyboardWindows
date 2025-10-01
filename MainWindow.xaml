@@ -3,23 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Mac Keyboard for Windows"
         SizeToContent="WidthAndHeight"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
-        Topmost="True"
-        Loaded="MainWindow_Loaded"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" Loaded="MainWindow_Loaded" MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
-    <Border Name="MainBorder"
-            Width="1100" Height="350"
-            Background="{DynamicResource WindowBackgroundColor}"
-            CornerRadius="8"
-            BorderBrush="{DynamicResource WindowBorderColor}"
-            BorderThickness="1">
+    <Border Name="MainBorder" Width="1100" Height="350" Background="{DynamicResource WindowBackgroundColor}" CornerRadius="8" BorderBrush="{DynamicResource WindowBorderColor}" BorderThickness="1">
         <Border.LayoutTransform>
             <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
         </Border.LayoutTransform>
-
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -31,15 +21,14 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Fila 0: Barra de título -->
+            <!-- Fila 0: Barra de título (sin cambios) -->
             <Grid Grid.Row="0" Margin="5,5,5,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource TitleBarButtonStyle}"
-                        MouseLeftButtonDown="OptionsButton_Click">
+                <Border Grid.Column="0" Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="OptionsButton_Click">
                     <TextBlock Text="&#xE700;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
                     <Border.ContextMenu>
                         <ContextMenu Style="{StaticResource AppContextMenuStyle}">
@@ -81,7 +70,7 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Fila 1: Teclas de función (F1-F12) -->
+            <!-- Fila 1: Teclas de función (sin cambios) -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -151,7 +140,7 @@
                 </Border>
             </Grid>
 
-            <!-- Fila 2: Números y símbolos -->
+            <!-- Fila 2: Números y símbolos (sin cambios) -->
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -213,7 +202,7 @@
                 </Border>
             </Grid>
 
-            <!-- Fila 3: QWERTY -->
+            <!-- Fila 3: QWERTY (CON NOMBRES) -->
             <Grid Grid.Row="3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.5*"/>
@@ -235,34 +224,34 @@
                     <TextBlock Text="Tab" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="q" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyQ" Text="q" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="2" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="w" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyW" Text="w" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="3" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="e" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyE" Text="e" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="4" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="r" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyR" Text="r" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="5" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="t" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyT" Text="t" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="6" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="y" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyY" Text="y" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="7" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="u" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyU" Text="u" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="8" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="i" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyI" Text="i" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="9" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="o" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyO" Text="o" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="10" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="p" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyP" Text="p" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="11" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Text="[" Style="{StaticResource KeyTextStyle}"/>
@@ -275,7 +264,7 @@
                 </Border>
             </Grid>
 
-            <!-- Fila 4: ASDF -->
+            <!-- Fila 4: ASDF (CON NOMBRES) -->
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.8*"/>
@@ -292,35 +281,35 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="1.8*"/>
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
+                <Border x:Name="CapsLockBorder" Grid.Column="0" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Style="{StaticResource KeyTextStyle}" TextAlignment="Center">Bloq<LineBreak/>Mayus</TextBlock>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="a" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyA" Text="a" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="2" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="s" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyS" Text="s" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="3" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="d" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyD" Text="d" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="4" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="f" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyF" Text="f" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="5" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="g" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyG" Text="g" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="6" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="h" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyH" Text="h" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="7" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="j" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyJ" Text="j" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="8" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="k" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyK" Text="k" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="9" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="l" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyL" Text="l" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="10" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Text=";" Style="{StaticResource KeyTextStyle}"/>
@@ -333,7 +322,7 @@
                 </Border>
             </Grid>
 
-            <!-- Fila 5: ZXCV -->
+            <!-- Fila 5: ZXCV (CON NOMBRES) -->
             <Grid Grid.Row="5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2.2*"/>
@@ -349,29 +338,29 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="2.2*"/>
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
+                <Border x:Name="LeftShiftBorder" Grid.Column="0" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Text="Shift" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="z" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyZ" Text="z" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="2" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="x" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyX" Text="x" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="3" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="c" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyC" Text="c" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="4" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="v" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyV" Text="v" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="5" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="b" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyB" Text="b" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="6" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="n" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyN" Text="n" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="7" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
-                    <TextBlock Text="m" Style="{StaticResource KeyTextStyle}"/>
+                    <TextBlock x:Name="KeyM" Text="m" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
                 <Border Grid.Column="8" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Text="," Style="{StaticResource KeyTextStyle}"/>
@@ -382,12 +371,12 @@
                 <Border Grid.Column="10" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Text="/" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
-                <Border Grid.Column="11" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
+                <Border x:Name="RightShiftBorder" Grid.Column="11" Style="{StaticResource KeyStyle}" MouseLeftButtonDown="Key_MouseLeftButtonDown">
                     <TextBlock Text="Shift" Style="{StaticResource KeyTextStyle}"/>
                 </Border>
             </Grid>
 
-            <!-- Fila 6: Teclas de función final -->
+            <!-- Fila 6: Teclas de función final (sin cambios) -->
             <Grid Grid.Row="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.25*"/>
@@ -422,4 +411,4 @@
             </Grid>
         </Grid>
     </Border>
-</Window> 
+</Window>
