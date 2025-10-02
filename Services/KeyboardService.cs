@@ -39,6 +39,7 @@ namespace MacKeyboardWindows.Services
         OEM_5 = 0xDC,      // '\|'
         OEM_6 = 0xDD,      // ']}'
         OEM_7 = 0xDE,      // ''"'
+        OEM_102 = 0xE2,    // '<>' en teclados no US // <-- AÑADE ESTA LÍNEA
     }
 
     public class KeyboardService
