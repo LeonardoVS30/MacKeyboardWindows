@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace MacKeyboardWindows.Services
 {
-    // Enumeración completa de los Códigos de Tecla Virtuales de Windows
     public enum VirtualKeyCode : ushort
     {
         // Letters
@@ -26,20 +25,21 @@ namespace MacKeyboardWindows.Services
         PRINT_SCREEN = 0x2C,
         SCROLL = 0x91,
         PAUSE = 0x13,
+        APPS = 0x5D,      // <-- DEFINICIÓN AÑADIDA Y CORREGIDA
 
         // OEM Keys
-        OEM_1 = 0xBA,      // ';:' for US
+        OEM_1 = 0xBA,      // ';:' for US / 'ñ' for ES
         OEM_PLUS = 0xBB,   // '+'
         OEM_COMMA = 0xBC,  // ','
         OEM_MINUS = 0xBD,  // '-'
         OEM_PERIOD = 0xBE, // '.'
-        OEM_2 = 0xBF,      // '/?'
-        OEM_3 = 0xC0,      // '`~'
-        OEM_4 = 0xDB,      // '[{'
-        OEM_5 = 0xDC,      // '\|'
-        OEM_6 = 0xDD,      // ']}'
-        OEM_7 = 0xDE,      // ''"'
-        OEM_102 = 0xE2,    // '<>' en teclados no US // <-- AÑADE ESTA LÍNEA
+        OEM_2 = 0xBF,      // '/?' for US / 'ç' for ES
+        OEM_3 = 0xC0,      // '`~' for US / 'º' for ES
+        OEM_4 = 0xDB,      // '[{' for US / '`' for ES
+        OEM_5 = 0xDC,      // '\|' for US / '´' for ES
+        OEM_6 = 0xDD,      // ']}' for US / '¡' for ES
+        OEM_7 = 0xDE,      // ''"' for US / "'" for ES
+        OEM_102 = 0xE2,    // '<>' en teclados no US
     }
 
     public class KeyboardService
@@ -48,53 +48,19 @@ namespace MacKeyboardWindows.Services
         private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct INPUT
-        {
-            public uint type;
-            public InputUnion U;
-        }
+        private struct INPUT { public uint type; public InputUnion U; }
 
         [StructLayout(LayoutKind.Explicit)]
-        private struct InputUnion
-        {
-            [FieldOffset(0)]
-            public MOUSEINPUT mi;
-            [FieldOffset(0)]
-            public KEYBDINPUT ki;
-            [FieldOffset(0)]
-            public HARDWAREINPUT hi;
-        }
-
+        private struct InputUnion { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; [FieldOffset(0)] public HARDWAREINPUT hi; }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct MOUSEINPUT
-        {
-            public int dx;
-            public int dy;
-            public uint mouseData;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
+        private struct MOUSEINPUT { public int dx; public int dy; public uint mouseData; public uint dwFlags; public uint time; public IntPtr dwExtraInfo; }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct HARDWAREINPUT
-        {
-            public uint uMsg;
-            public ushort wParamL;
-            public ushort wParamH;
-        }
-        // --- FIN DE LAS ESTRUCTURAS A AÑADIR ---
+        private struct HARDWAREINPUT { public uint uMsg; public ushort wParamL; public ushort wParamH; }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct KEYBDINPUT
-        {
-            public ushort wVk;
-            public ushort wScan;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
+        private struct KEYBDINPUT { public ushort wVk; public ushort wScan; public uint dwFlags; public uint time; public IntPtr dwExtraInfo; }
 
         private const uint INPUT_KEYBOARD = 1;
         private const uint KEYEVENTF_KEYUP = 0x0002;
@@ -103,40 +69,9 @@ namespace MacKeyboardWindows.Services
         {
             var inputs = new INPUT[]
             {
-                // Key down
-                new INPUT
-                {
-                    type = INPUT_KEYBOARD,
-                    U = new InputUnion
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wVk = (ushort)keyCode,
-                            wScan = 0,
-                            dwFlags = 0,
-                            time = 0,
-                            dwExtraInfo = IntPtr.Zero
-                        }
-                    }
-                },
-                // Key up
-                new INPUT
-                {
-                    type = INPUT_KEYBOARD,
-                    U = new InputUnion
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wVk = (ushort)keyCode,
-                            wScan = 0,
-                            dwFlags = KEYEVENTF_KEYUP,
-                            time = 0,
-                            dwExtraInfo = IntPtr.Zero
-                        }
-                    }
-                }
+                new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)keyCode, dwFlags = 0 } } },
+                new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)keyCode, dwFlags = KEYEVENTF_KEYUP } } }
             };
-
             SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
     }

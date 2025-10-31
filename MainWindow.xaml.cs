@@ -191,7 +191,6 @@ namespace MacKeyboardWindows
 
         private void HighlightKey(Key key, bool isPressed)
         {
-            // El estado de Shift/Caps lo maneja el temporizador. Aquí solo gestionamos el "flash".
             if (key == Key.Capital || key == Key.LeftShift || key == Key.RightShift) return;
 
             // La nueva lógica: buscar directamente en el mapa correcto.
