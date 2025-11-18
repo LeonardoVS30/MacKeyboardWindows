@@ -31,6 +31,7 @@
                                 <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                                 <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
                                 <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
+                                <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
                             </MenuItem>
                             <MenuItem Header="Opacity">
                                 <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>

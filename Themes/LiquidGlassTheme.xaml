@@ -1,0 +1,39 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- FONDO DE LA VENTANA:
+         Usamos un color casi transparente porque el efecto "Blur" de Windows pondrá el color base.
+         Aquí solo ponemos un tinte blanco sutil. -->
+    <LinearGradientBrush x:Key="WindowBackgroundColor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#10FFFFFF" Offset="0.0"/>
+        <GradientStop Color="#30FFFFFF" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- BORDE DE LA VENTANA:
+         Un gradiente blanco que simula luz viniendo de arriba a la izquierda. -->
+    <LinearGradientBrush x:Key="WindowBorderColor" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#80FFFFFF" Offset="0.0"/>
+        <GradientStop Color="#20FFFFFF" Offset="0.5"/>
+        <GradientStop Color="#40FFFFFF" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- FONDO DE LAS TECLAS:
+         Efecto "Glassmorphism" en las teclas. Más opacas que el fondo. -->
+    <LinearGradientBrush x:Key="KeyBackgroundColor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#25FFFFFF" Offset="0.0"/>
+        <GradientStop Color="#10FFFFFF" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- BORDE DE LAS TECLAS:
+         Fino y brillante para definir el cristal. -->
+    <SolidColorBrush x:Key="KeyBorderColor" Color="#40FFFFFF"/>
+
+    <!-- TEXTO:
+         Blanco puro con sombra para que se lea sobre cualquier fondo. -->
+    <SolidColorBrush x:Key="KeyForegroundColor" Color="White"/>
+
+    <!-- FONDO AL PRESIONAR:
+         Blanco brillante casi sólido. -->
+    <SolidColorBrush x:Key="KeyBackgroundPressedColor" Color="#60FFFFFF"/>
+
+</ResourceDictionary>
