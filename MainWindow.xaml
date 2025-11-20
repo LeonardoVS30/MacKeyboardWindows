@@ -6,32 +6,98 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" Loaded="MainWindow_Loaded" MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
-    <Border Name="MainBorder" Width="1100" MinHeight="350" Background="{DynamicResource WindowBackgroundColor}" CornerRadius="8" BorderBrush="{DynamicResource WindowBorderColor}" BorderThickness="1">
+    <Window.Resources>
+        <!-- ANIMACIÓN DEL MENÚ HAMBURGUESA -->
+        <!-- Convierte las 3 líneas en una X cuando está marcado -->
+        <ControlTemplate x:Key="HamburgerMenuTemplate" TargetType="ToggleButton">
+            <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
+                <Grid Width="16" Height="14" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <!-- Línea Superior -->
+                    <Rectangle x:Name="TopLine" Height="2" Width="16" VerticalAlignment="Top" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
+                        <Rectangle.RenderTransform>
+                            <RotateTransform Angle="0"/>
+                        </Rectangle.RenderTransform>
+                    </Rectangle>
+                    <!-- Línea Central -->
+                    <Rectangle x:Name="MiddleLine" Height="2" Width="16" VerticalAlignment="Center" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" Opacity="1"/>
+                    <!-- Línea Inferior -->
+                    <Rectangle x:Name="BottomLine" Height="2" Width="16" VerticalAlignment="Bottom" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
+                        <Rectangle.RenderTransform>
+                            <RotateTransform Angle="0"/>
+                        </Rectangle.RenderTransform>
+                    </Rectangle>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <!-- Animación al abrir (Checked) -->
+                <Trigger Property="IsChecked" Value="True">
+                    <!-- Rotar línea superior 45 grados y bajarla -->
+                    <Setter TargetName="TopLine" Property="RenderTransform">
+                        <Setter.Value>
+                            <TransformGroup>
+                                <TranslateTransform Y="6"/>
+                                <RotateTransform Angle="45"/>
+                            </TransformGroup>
+                        </Setter.Value>
+                    </Setter>
+                    <!-- Ocultar línea central -->
+                    <Setter TargetName="MiddleLine" Property="Opacity" Value="0"/>
+                    <!-- Rotar línea inferior -45 grados y subirla -->
+                    <Setter TargetName="BottomLine" Property="RenderTransform">
+                        <Setter.Value>
+                            <TransformGroup>
+                                <TranslateTransform Y="-6"/>
+                                <RotateTransform Angle="-45"/>
+                            </TransformGroup>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Opacity" Value="0.8"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </Window.Resources>
+
+    <Border Name="MainBorder" Width="1100" MinHeight="350" Background="{DynamicResource WindowBackgroundColor}" CornerRadius="12" BorderBrush="{DynamicResource WindowBorderColor}" BorderThickness="1">
         <Border.LayoutTransform>
             <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
         </Border.LayoutTransform>
+
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <!-- Barra de título -->
                 <RowDefinition Height="*"/>
+                <!-- Teclado -->
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="5,5,5,10">
+            <!-- Fila 0: Barra de título Estilizada -->
+            <Grid Grid.Row="0" Margin="10,8,10,5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
+                    <!-- Menú -->
                     <ColumnDefinition Width="*"/>
+                    <!-- Espacio vacío (para arrastrar) -->
                     <ColumnDefinition Width="Auto"/>
+                    <!-- Botones acción derecha -->
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="OptionsButton_Click">
-                    <TextBlock Text="&#xE700;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
-                    <Border.ContextMenu>
-                        <ContextMenu Style="{StaticResource AppContextMenuStyle}">
+
+                <!-- BOTÓN DE MENÚ HAMBURGUESA ANIMADO -->
+                <!-- Usamos un ToggleButton para mantener el estado abierto/cerrado -->
+                <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" 
+                              Template="{StaticResource HamburgerMenuTemplate}"
+                              Click="MenuToggleButton_Click">
+                    <ToggleButton.ContextMenu>
+                        <ContextMenu x:Name="MainMenu" Style="{StaticResource AppContextMenuStyle}" Closed="MainMenu_Closed">
                             <MenuItem Header="Appearance">
                                 <MenuItem Header="System Theme" Tag="System" Click="Theme_Click"/>
                                 <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                                 <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
                                 <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
                                 <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
+                                <!-- AÑADIDO -->
                             </MenuItem>
                             <MenuItem Header="Opacity">
                                 <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
@@ -56,21 +122,40 @@
                             </MenuItem>
                             <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
                             <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                            <MenuItem Header="Close" Click="CloseMenuItem_Click"/>
+                            <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
                         </ContextMenu>
-                    </Border.ContextMenu>
-                </Border>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Border Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="MinimizeButton_Click">
-                        <TextBlock Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
+                    </ToggleButton.ContextMenu>
+                </ToggleButton>
+
+                <!-- Botones a la derecha -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+
+                    <!-- Botón Minimizar (Círculo con guion) -->
+                    <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
+                            ToolTip="Minimizar" 
+                            MouseLeftButtonDown="MinimizeButton_Click">
+                        <Path Data="{StaticResource IconWindowMinimize}" 
+                              Style="{StaticResource NeumorphicHeaderIconStyle}"
+                              Width="8" Height="2"/>
+                        <!-- Ajuste fino del tamaño del icono -->
                     </Border>
-                    <Border Style="{StaticResource TitleBarButtonStyle}" MouseLeftButtonDown="CloseButton_Click">
-                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="10" Style="{StaticResource KeyTextStyle}"/>
+
+                    <!-- Botón Cerrar (Círculo con X) -->
+                    <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
+                            ToolTip="Cerrar" 
+                            MouseLeftButtonDown="CloseButton_Click">
+                        <!-- Un pequeño margen rojo sutil al hacer hover sería genial, 
+                             pero para mantenerlo monocromo usamos el estilo base -->
+                        <Path Data="{StaticResource IconWindowClose}" 
+                              Style="{StaticResource NeumorphicHeaderIconStyle}"
+                              Width="8" Height="8"/>
                     </Border>
+
                 </StackPanel>
             </Grid>
 
-            <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,5" />
+            <!-- CONTENEDOR DINÁMICO PARA EL TECLADO -->
+            <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
 
         </Grid>
     </Border>
