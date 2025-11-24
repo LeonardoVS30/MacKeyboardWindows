@@ -55,29 +55,6 @@ namespace MacKeyboardWindows
 
             _keyboardStateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             _keyboardStateTimer.Tick += (s, e) => UpdateKeyboardState();
-
-            Loaded += MainWindow_Loaded;
-            Closed += MainWindow_Closed;
-            StateChanged += MainWindow_StateChanged;
-        }
-
-        private void MainWindow_StateChanged(object sender, EventArgs e)
-        {
-            if (WindowState == WindowState.Normal)
-            {
-                // Asegurar que la ventana sea visible al restaurar
-                if (MainBorder.RenderTransform is TransformGroup tg)
-                {
-                    if (tg.Children[0] is ScaleTransform st) { st.ScaleX = 1.0; st.ScaleY = 1.0; }
-                    if (tg.Children[1] is TranslateTransform tt) { tt.Y = 0; }
-                }
-                MainBorder.Opacity = 1.0;
-            }
-        }
-
-        #region Window Lifetime & Layout Loading
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
             StartKeyboardHook();
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
             _keyboardStateTimer.Start();
