@@ -381,6 +381,9 @@ namespace MacKeyboardWindows
                     else if (themeName == "LiquidGlass")
                     {
                         fileName = "LiquidGlassTheme.xaml";
+                    }
+
+                };
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
