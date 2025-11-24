@@ -55,6 +55,42 @@ namespace MacKeyboardWindows
 
             _keyboardStateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             _keyboardStateTimer.Tick += (s, e) => UpdateKeyboardState();
+
+            Loaded += MainWindow_Loaded;
+            Closed += MainWindow_Closed;
+            StateChanged += MainWindow_StateChanged;
+        }
+
+        private void MainWindow_StateChanged(object sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Normal)
+            {
+                // 1. Eliminar animaciones de Opacidad
+                MainBorder.BeginAnimation(Border.OpacityProperty, null);
+                MainBorder.Opacity = 1.0;
+
+                // 2. Eliminar animaciones de Transformación
+                if (MainBorder.RenderTransform is TransformGroup tg)
+                {
+                    if (tg.Children[0] is ScaleTransform st)
+                    {
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                        st.ScaleX = 1.0;
+                        st.ScaleY = 1.0;
+                    }
+                    if (tg.Children[1] is TranslateTransform tt)
+                    {
+                        tt.BeginAnimation(TranslateTransform.YProperty, null);
+                        tt.Y = 0;
+                    }
+                }
+            }
+        }
+
+        #region Window Lifetime & Layout Loading
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
             StartKeyboardHook();
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
             _keyboardStateTimer.Start();
