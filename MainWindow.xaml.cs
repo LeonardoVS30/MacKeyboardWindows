@@ -58,6 +58,21 @@ namespace MacKeyboardWindows
 
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;
+            StateChanged += MainWindow_StateChanged;
+        }
+
+        private void MainWindow_StateChanged(object sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Normal)
+            {
+                // Asegurar que la ventana sea visible al restaurar
+                if (MainBorder.RenderTransform is TransformGroup tg)
+                {
+                    if (tg.Children[0] is ScaleTransform st) { st.ScaleX = 1.0; st.ScaleY = 1.0; }
+                    if (tg.Children[1] is TranslateTransform tt) { tt.Y = 0; }
+                }
+                MainBorder.Opacity = 1.0;
+            }
         }
 
         #region Window Lifetime & Layout Loading
@@ -356,6 +371,33 @@ namespace MacKeyboardWindows
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => Close();
 
         // --- Temas y Blur ---
+        private void LoadThemeResources(string themeName)
+        {
+            string fileName;
+            WindowBlur.EnableBlur(this, false); // Reset Blur
+
+            if (themeName == "System")
+            {
+                var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
+                fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
+            }
+            else if (themeName == "LiquidGlass")
+            {
+                fileName = "LiquidGlassTheme.xaml";
+                WindowBlur.EnableBlur(this, true); // Activar Blur
+            }
+            else if (themeName == "Light") fileName = "LightTheme.xaml";
+            else fileName = "DarkTheme.xaml";
+
+            var u = new Uri($"Themes/{fileName}", UriKind.Relative);
+            var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
+            var themeDict = new ResourceDictionary { Source = u };
+
+            Application.Current.Resources.MergedDictionaries.Clear();
+            Application.Current.Resources.MergedDictionaries.Add(stylesDict);
+            Application.Current.Resources.MergedDictionaries.Add(themeDict);
+        }
+
         private void ApplyTheme(string themeName)
         {
             try
@@ -367,29 +409,7 @@ namespace MacKeyboardWindows
 
                 fadeOut.Completed += (s, e) =>
                 {
-                    string fileName;
-                    WindowBlur.EnableBlur(this, false); // Reset Blur
-
-                    if (themeName == "System")
-                    {
-                        var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
-                        fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
-                    }
-                    else if (themeName == "LiquidGlass")
-                    {
-                        fileName = "LiquidGlassTheme.xaml";
-                        WindowBlur.EnableBlur(this, true); // Activar Blur
-                    }
-                    else if (themeName == "Light") fileName = "LightTheme.xaml";
-                    else fileName = "DarkTheme.xaml";
-
-                    var u = new Uri($"Themes/{fileName}", UriKind.Relative);
-                    var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
-                    var themeDict = new ResourceDictionary { Source = u };
-
-                    Application.Current.Resources.MergedDictionaries.Clear();
-                    Application.Current.Resources.MergedDictionaries.Add(stylesDict);
-                    Application.Current.Resources.MergedDictionaries.Add(themeDict);
+                    LoadThemeResources(themeName);
 
                     // Fade In
                     if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeIn);
@@ -399,33 +419,8 @@ namespace MacKeyboardWindows
                 else
                 {
                     // Si MainBorder aún no existe (no debería pasar si se llama en OnSourceInitialized), forzar callback
-                    // Ejecutar directamente el código del manejador en vez de invocar el evento
-                    string fileName;
-                    WindowBlur.EnableBlur(this, false); // Reset Blur
-
-                    if (themeName == "System")
-                    {
-                        var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
-                        fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
-                    }
-                    else if (themeName == "LiquidGlass")
-                    {
-                        fileName = "LiquidGlassTheme.xaml";
-                        WindowBlur.EnableBlur(this, true); // Activar Blur
-                    }
-                    else if (themeName == "Light") fileName = "LightTheme.xaml";
-                    else fileName = "DarkTheme.xaml";
-
-                    var u = new Uri($"Themes/{fileName}", UriKind.Relative);
-                    var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
-                    var themeDict = new ResourceDictionary { Source = u };
-
-                    Application.Current.Resources.MergedDictionaries.Clear();
-                    Application.Current.Resources.MergedDictionaries.Add(stylesDict);
-                    Application.Current.Resources.MergedDictionaries.Add(themeDict);
-
-                    // Fade In
-                    if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeIn);
+                    // Ejecutar directamente la carga de recursos
+                    LoadThemeResources(themeName);
                 }
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
@@ -469,8 +464,11 @@ namespace MacKeyboardWindows
             sb.Completed += (s, args) =>
             {
                 WindowState = WindowState.Minimized;
+                
+                // Detener el storyboard para liberar las propiedades
+                sb.Stop(this);
 
-                // Resetear estado
+                // Resetear estado inmediatamente (aunque no se vea)
                 if (MainBorder.RenderTransform is TransformGroup tg)
                 {
                     if (tg.Children[0] is ScaleTransform st) { st.ScaleX = 1.0; st.ScaleY = 1.0; }
