@@ -29,29 +29,70 @@
                 </Grid>
             </Border>
             <ControlTemplate.Triggers>
-                <!-- Animación al abrir (Checked) -->
-                <Trigger Property="IsChecked" Value="True">
-                    <!-- Rotar línea superior 45 grados y bajarla -->
-                    <Setter TargetName="TopLine" Property="RenderTransform">
-                        <Setter.Value>
-                            <TransformGroup>
-                                <TranslateTransform Y="6"/>
-                                <RotateTransform Angle="45"/>
-                            </TransformGroup>
-                        </Setter.Value>
-                    </Setter>
-                    <!-- Ocultar línea central -->
-                    <Setter TargetName="MiddleLine" Property="Opacity" Value="0"/>
-                    <!-- Rotar línea inferior -45 grados y subirla -->
-                    <Setter TargetName="BottomLine" Property="RenderTransform">
-                        <Setter.Value>
-                            <TransformGroup>
-                                <TranslateTransform Y="-6"/>
-                                <RotateTransform Angle="-45"/>
-                            </TransformGroup>
-                        </Setter.Value>
-                    </Setter>
-                </Trigger>
+                <EventTrigger RoutedEvent="ToggleButton.Checked">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <!-- Top Line Animation -->
+                            <DoubleAnimation Storyboard.TargetName="TopLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" To="6" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="TopLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(RotateTransform.Angle)" To="45" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+
+                            <!-- Middle Line Animation -->
+                            <DoubleAnimation Storyboard.TargetName="MiddleLine" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2"/>
+
+                            <!-- Bottom Line Animation -->
+                            <DoubleAnimation Storyboard.TargetName="BottomLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" To="-6" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="BottomLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(RotateTransform.Angle)" To="-45" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="ToggleButton.Unchecked">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <!-- Top Line Animation -->
+                            <DoubleAnimation Storyboard.TargetName="TopLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" To="0" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="TopLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(RotateTransform.Angle)" To="0" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+
+                            <!-- Middle Line Animation -->
+                            <DoubleAnimation Storyboard.TargetName="MiddleLine" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2"/>
+
+                            <!-- Bottom Line Animation -->
+                            <DoubleAnimation Storyboard.TargetName="BottomLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" To="0" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="BottomLine" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(RotateTransform.Angle)" To="0" Duration="0:0:0.3">
+                                <DoubleAnimation.EasingFunction>
+                                    <BackEase EasingMode="EaseOut" Amplitude="0.5"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Cursor" Value="Hand"/>
                     <Setter Property="Opacity" Value="0.8"/>
@@ -120,7 +161,7 @@
                                 <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
                                 <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
                             </MenuItem>
-<MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
+                            <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
                             <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                             <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
                         </ContextMenu>

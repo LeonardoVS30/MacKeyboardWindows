@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using MacKeyboardWindows.Models;
 using MacKeyboardWindows.Services;
 using Microsoft.Win32;
+using System.Windows.Media.Animation;
 
 namespace MacKeyboardWindows
 {
@@ -80,23 +81,6 @@ namespace MacKeyboardWindows
 
         private void Layout_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.Tag is string layoutName)
-            {
-                LoadLayout(layoutName);
-            }
-        }
-
-        private void LoadLayout(string name)
-        {
-            _currentLayout = name;
-            var layout = LayoutFactory.GetLayout(name);
-            BuildKeyboardUI(layout);
-            UpdateKeyboardState();
-        }
-        #endregion
-
-        #region Dynamic UI Builder
-        private void BuildKeyboardUI(KeyboardLayout layout)
         {
             KeyboardContainer.Children.Clear();
             KeyboardContainer.RowDefinitions.Clear();
@@ -328,7 +312,21 @@ namespace MacKeyboardWindows
 
         // --- Opciones Generales ---
         private void Opacity_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o)) MainBorder.Opacity = o; }
-        private void Zoom_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f)) { WindowScaleTransform.ScaleX = f; WindowScaleTransform.ScaleY = f; } }
+        private void Zoom_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
+            {
+                // Animación suave de escala (Apple-style: CubicEaseInOut)
+                var duration = TimeSpan.FromMilliseconds(300);
+                var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+                var animX = new DoubleAnimation(f, duration) { EasingFunction = ease };
+                var animY = new DoubleAnimation(f, duration) { EasingFunction = ease };
+
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
+            }
+        }
         private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) ApplyTheme(th); }
         private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) _soundService.IsEnabled = mi.IsChecked; }
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => Close();
@@ -368,7 +366,43 @@ namespace MacKeyboardWindows
 
         // --- Botones de la ventana ---
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
-        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e) => WindowState = WindowState.Minimized;
+        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            // Animación de minimizar (Scale Down + Fade Out)
+            var duration = TimeSpan.FromMilliseconds(250);
+            var ease = new QuadraticEase { EasingMode = EasingMode.EaseIn };
+
+            var scaleX = new DoubleAnimation(0.8, duration) { EasingFunction = ease };
+            var scaleY = new DoubleAnimation(0.8, duration) { EasingFunction = ease };
+            var fade = new DoubleAnimation(0, duration) { EasingFunction = ease };
+
+            var sb = new Storyboard();
+            Storyboard.SetTarget(scaleX, WindowScaleTransform);
+            Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
+            Storyboard.SetTarget(scaleY, WindowScaleTransform);
+            Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
+            Storyboard.SetTarget(fade, MainBorder);
+            Storyboard.SetTargetProperty(fade, new PropertyPath(Border.OpacityProperty));
+
+            sb.Children.Add(scaleX);
+            sb.Children.Add(scaleY);
+            sb.Children.Add(fade);
+
+            sb.Completed += (s, args) =>
+            {
+                WindowState = WindowState.Minimized;
+
+                // Resetear estado para cuando se restaure
+                // Nota: WPF no tiene un evento "Restoring" directo simple que intercepte antes de mostrar,
+                // pero al restaurar, el Opacity debe ser 1. Lo reseteamos aquí mismo o en StateChanged.
+                // Para simplificar, lo dejamos listo para la vuelta:
+                WindowScaleTransform.ScaleX = 1.0;
+                WindowScaleTransform.ScaleY = 1.0;
+                MainBorder.Opacity = 1.0;
+            };
+
+            sb.Begin();
+        }
         private void CloseButton_Click(object sender, MouseButtonEventArgs e) => Close();
 
         // --- Lógica para hacer la ventana "No Activable" (No roba foco) ---
