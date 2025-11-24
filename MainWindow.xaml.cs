@@ -363,28 +363,41 @@ namespace MacKeyboardWindows
         {
             try
             {
-                string fileName;
-                WindowBlur.EnableBlur(this, false); // Reset Blur
+                // Animación "Washed" (Fade Out -> Change Theme -> Fade In)
+                var duration = TimeSpan.FromMilliseconds(200);
+                var fadeOut = new DoubleAnimation(0.5, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                var fadeIn = new DoubleAnimation(1.0, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
 
-                if (themeName == "System")
+                fadeOut.Completed += (s, e) =>
                 {
-                    var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
-                    fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
-                }
-                else if (themeName == "LiquidGlass")
-                {
-                    fileName = "LiquidGlassTheme.xaml";
-                    WindowBlur.EnableBlur(this, true); // Activar Blur
-                }
-                else if (themeName == "Light") fileName = "LightTheme.xaml";
-                else fileName = "DarkTheme.xaml";
+                    string fileName;
+                    WindowBlur.EnableBlur(this, false); // Reset Blur
 
-                var u = new Uri($"Themes/{fileName}", UriKind.Relative);
-                var s = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
-                var t = new ResourceDictionary { Source = u };
-                Application.Current.Resources.MergedDictionaries.Clear();
-                Application.Current.Resources.MergedDictionaries.Add(s);
-                Application.Current.Resources.MergedDictionaries.Add(t);
+                    if (themeName == "System")
+                    {
+                        var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
+                        fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
+                    }
+                    else if (themeName == "LiquidGlass")
+                    {
+                        fileName = "LiquidGlassTheme.xaml";
+                        WindowBlur.EnableBlur(this, true); // Activar Blur
+                    }
+                    else if (themeName == "Light") fileName = "LightTheme.xaml";
+                    else fileName = "DarkTheme.xaml";
+
+                    var u = new Uri($"Themes/{fileName}", UriKind.Relative);
+                    var s = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
+                    var t = new ResourceDictionary { Source = u };
+                    Application.Current.Resources.MergedDictionaries.Clear();
+                    Application.Current.Resources.MergedDictionaries.Add(s);
+                    Application.Current.Resources.MergedDictionaries.Add(t);
+
+                    // Fade In
+                    MainBorder.BeginAnimation(OpacityProperty, fadeIn);
+                };
+
+                MainBorder.BeginAnimation(OpacityProperty, fadeOut);
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
@@ -396,36 +409,43 @@ namespace MacKeyboardWindows
         
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
-            // Animación de minimizar (Scale Down + Fade Out)
-            var duration = TimeSpan.FromMilliseconds(250);
-            var ease = new QuadraticEase { EasingMode = EasingMode.EaseIn };
+            // Animación de minimizar estilo macOS (Genie-like approximation: Scale Down + Translate Down + Fade Out)
+            var duration = TimeSpan.FromMilliseconds(350);
+            var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
 
-            var scaleX = new DoubleAnimation(0.8, duration) { EasingFunction = ease };
-            var scaleY = new DoubleAnimation(0.8, duration) { EasingFunction = ease };
+            var scaleX = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
+            var scaleY = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
+            var translateY = new DoubleAnimation(200, duration) { EasingFunction = ease }; // Mover hacia abajo
             var fade = new DoubleAnimation(0, duration) { EasingFunction = ease };
 
             var sb = new Storyboard();
-            // Usamos MainBorderScale (RenderTransform) para una animación más suave
+
             Storyboard.SetTargetName(scaleX, "MainBorderScale");
             Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
+            
             Storyboard.SetTargetName(scaleY, "MainBorderScale");
             Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
+
+            Storyboard.SetTargetName(translateY, "MainBorderTranslate");
+            Storyboard.SetTargetProperty(translateY, new PropertyPath(TranslateTransform.YProperty));
+
             Storyboard.SetTarget(fade, MainBorder);
             Storyboard.SetTargetProperty(fade, new PropertyPath(Border.OpacityProperty));
 
             sb.Children.Add(scaleX);
             sb.Children.Add(scaleY);
+            sb.Children.Add(translateY);
             sb.Children.Add(fade);
 
             sb.Completed += (s, args) =>
             {
                 WindowState = WindowState.Minimized;
 
-                // Resetear estado para cuando se restaure
-                if (MainBorder.RenderTransform is ScaleTransform st)
+                // Resetear estado
+                if (MainBorder.RenderTransform is TransformGroup tg)
                 {
-                    st.ScaleX = 1.0;
-                    st.ScaleY = 1.0;
+                    if (tg.Children[0] is ScaleTransform st) { st.ScaleX = 1.0; st.ScaleY = 1.0; }
+                    if (tg.Children[1] is TranslateTransform tt) { tt.Y = 0; }
                 }
                 MainBorder.Opacity = 1.0;
             };
