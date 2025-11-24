@@ -47,9 +47,6 @@ namespace MacKeyboardWindows
 
         public MainWindow()
         {
-            // Importante: Aplicar tema antes de inicializar componentes
-            ApplyTheme("System");
-
             InitializeComponent();
 
             _keyboardService = new KeyboardService();
@@ -395,10 +392,15 @@ namespace MacKeyboardWindows
                     Application.Current.Resources.MergedDictionaries.Add(themeDict);
 
                     // Fade In
-                    MainBorder.BeginAnimation(OpacityProperty, fadeIn);
+                    if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeIn);
                 };
 
-                MainBorder.BeginAnimation(OpacityProperty, fadeOut);
+                if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeOut);
+                else
+                {
+                    // Si MainBorder aún no existe (no debería pasar si se llama en OnSourceInitialized), forzar callback
+                    fadeOut.Completed?.Invoke(this, EventArgs.Empty);
+                }
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
@@ -464,6 +466,9 @@ namespace MacKeyboardWindows
             var hwnd = helper.Handle;
             var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
+            
+            // Aplicar tema inicial (ahora que la ventana está lista y MainBorder existe)
+            ApplyTheme("System");
         }
 
         #region Window Blur Class
@@ -477,6 +482,8 @@ namespace MacKeyboardWindows
             public static void EnableBlur(Window window, bool enable)
             {
                 var windowHelper = new WindowInteropHelper(window);
+                if (windowHelper.Handle == IntPtr.Zero) return;
+
                 var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
                 var accentStructSize = Marshal.SizeOf(accent);
                 var accentPtr = Marshal.AllocHGlobal(accentStructSize);
