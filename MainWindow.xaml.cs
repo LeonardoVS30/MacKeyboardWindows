@@ -73,47 +73,6 @@ namespace MacKeyboardWindows
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)
-        {
-            StopKeyboardHook();
-            SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
-            _keyboardStateTimer.Stop();
-        }
-
-        private void LoadLayout(string name)
-        {
-            _currentLayout = name;
-            var layout = LayoutFactory.GetLayout(name);
-
-            // Animación de cambio de layout (Fade Out -> Rebuild -> Fade In)
-            var duration = TimeSpan.FromMilliseconds(150);
-            var fadeOut = new DoubleAnimation(0, duration);
-            var fadeIn = new DoubleAnimation(1, duration);
-
-            fadeOut.Completed += (s, e) =>
-            {
-                BuildKeyboardUI(layout);
-                UpdateKeyboardState();
-                KeyboardContainer.BeginAnimation(OpacityProperty, fadeIn);
-            };
-
-            KeyboardContainer.BeginAnimation(OpacityProperty, fadeOut);
-        }
-
-        private void Layout_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string layoutCode)
-            {
-                LoadLayout(layoutCode);
-            }
-        }
-
-        private void BuildKeyboardUI(List<List<KeyModel>> layout)
-        {
-            KeyboardContainer.Children.Clear();
-            KeyboardContainer.RowDefinitions.Clear();
-            _wpfKeyToBorderMap.Clear();
-            _letterKeys.Clear();
-            _symbolKeys.Clear();
             _capsLockBorder = null; _leftShiftBorder = null; _rightShiftBorder = null;
 
             for (int i = 0; i < layout.Count; i++)
