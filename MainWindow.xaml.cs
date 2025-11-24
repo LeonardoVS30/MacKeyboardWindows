@@ -381,23 +381,6 @@ namespace MacKeyboardWindows
                     else if (themeName == "LiquidGlass")
                     {
                         fileName = "LiquidGlassTheme.xaml";
-                        WindowBlur.EnableBlur(this, true); // Activar Blur
-                    }
-                    else if (themeName == "Light") fileName = "LightTheme.xaml";
-                    else fileName = "DarkTheme.xaml";
-
-                    var u = new Uri($"Themes/{fileName}", UriKind.Relative);
-                    var s = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
-                    var t = new ResourceDictionary { Source = u };
-                    Application.Current.Resources.MergedDictionaries.Clear();
-                    Application.Current.Resources.MergedDictionaries.Add(s);
-                    Application.Current.Resources.MergedDictionaries.Add(t);
-
-                    // Fade In
-                    MainBorder.BeginAnimation(OpacityProperty, fadeIn);
-                };
-
-                MainBorder.BeginAnimation(OpacityProperty, fadeOut);
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
