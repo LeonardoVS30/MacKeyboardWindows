@@ -15,7 +15,10 @@
                     <!-- Línea Superior -->
                     <Rectangle x:Name="TopLine" Height="2" Width="16" VerticalAlignment="Top" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
-                            <RotateTransform Angle="0"/>
+                            <TransformGroup>
+                                <TranslateTransform Y="0"/>
+                                <RotateTransform Angle="0"/>
+                            </TransformGroup>
                         </Rectangle.RenderTransform>
                     </Rectangle>
                     <!-- Línea Central -->
@@ -23,7 +26,10 @@
                     <!-- Línea Inferior -->
                     <Rectangle x:Name="BottomLine" Height="2" Width="16" VerticalAlignment="Bottom" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
-                            <RotateTransform Angle="0"/>
+                            <TransformGroup>
+                                <TranslateTransform Y="0"/>
+                                <RotateTransform Angle="0"/>
+                            </TransformGroup>
                         </Rectangle.RenderTransform>
                     </Rectangle>
                 </Grid>
@@ -101,7 +107,10 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <Border Name="MainBorder" Width="1100" MinHeight="350" Background="{DynamicResource WindowBackgroundColor}" CornerRadius="12" BorderBrush="{DynamicResource WindowBorderColor}" BorderThickness="1">
+    <Border Name="MainBorder" Width="1100" MinHeight="350" Background="{DynamicResource WindowBackgroundColor}" CornerRadius="12" BorderBrush="{DynamicResource WindowBorderColor}" BorderThickness="1" RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <ScaleTransform x:Name="MainBorderScale" ScaleX="1.0" ScaleY="1.0"/>
+        </Border.RenderTransform>
         <Border.LayoutTransform>
             <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
         </Border.LayoutTransform>

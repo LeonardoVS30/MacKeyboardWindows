@@ -79,8 +79,35 @@ namespace MacKeyboardWindows
             _keyboardStateTimer.Stop();
         }
 
+        private void LoadLayout(string name)
+        {
+            _currentLayout = name;
+            var layout = LayoutFactory.GetLayout(name);
+
+            // Animación de cambio de layout (Fade Out -> Rebuild -> Fade In)
+            var duration = TimeSpan.FromMilliseconds(150);
+            var fadeOut = new DoubleAnimation(0, duration);
+            var fadeIn = new DoubleAnimation(1, duration);
+
+            fadeOut.Completed += (s, e) =>
+            {
+                BuildKeyboardUI(layout);
+                UpdateKeyboardState();
+                KeyboardContainer.BeginAnimation(OpacityProperty, fadeIn);
+            };
+
+            KeyboardContainer.BeginAnimation(OpacityProperty, fadeOut);
+        }
+
         private void Layout_Click(object sender, RoutedEventArgs e)
         {
+            if (sender is MenuItem mi && mi.Tag is string layoutCode)
+            {
+                LoadLayout(layoutCode);
+            }
+        }
+
+        private void BuildKeyboardUI(List<List<KeyModel>> layout)
         {
             KeyboardContainer.Children.Clear();
             KeyboardContainer.RowDefinitions.Clear();
@@ -366,6 +393,7 @@ namespace MacKeyboardWindows
 
         // --- Botones de la ventana ---
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
+        
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
             // Animación de minimizar (Scale Down + Fade Out)
@@ -377,9 +405,10 @@ namespace MacKeyboardWindows
             var fade = new DoubleAnimation(0, duration) { EasingFunction = ease };
 
             var sb = new Storyboard();
-            Storyboard.SetTarget(scaleX, WindowScaleTransform);
+            // Usamos MainBorderScale (RenderTransform) para una animación más suave
+            Storyboard.SetTargetName(scaleX, "MainBorderScale");
             Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
-            Storyboard.SetTarget(scaleY, WindowScaleTransform);
+            Storyboard.SetTargetName(scaleY, "MainBorderScale");
             Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
             Storyboard.SetTarget(fade, MainBorder);
             Storyboard.SetTargetProperty(fade, new PropertyPath(Border.OpacityProperty));
@@ -393,16 +422,17 @@ namespace MacKeyboardWindows
                 WindowState = WindowState.Minimized;
 
                 // Resetear estado para cuando se restaure
-                // Nota: WPF no tiene un evento "Restoring" directo simple que intercepte antes de mostrar,
-                // pero al restaurar, el Opacity debe ser 1. Lo reseteamos aquí mismo o en StateChanged.
-                // Para simplificar, lo dejamos listo para la vuelta:
-                WindowScaleTransform.ScaleX = 1.0;
-                WindowScaleTransform.ScaleY = 1.0;
+                if (MainBorder.RenderTransform is ScaleTransform st)
+                {
+                    st.ScaleX = 1.0;
+                    st.ScaleY = 1.0;
+                }
                 MainBorder.Opacity = 1.0;
             };
 
-            sb.Begin();
+            sb.Begin(this);
         }
+
         private void CloseButton_Click(object sender, MouseButtonEventArgs e) => Close();
 
         // --- Lógica para hacer la ventana "No Activable" (No roba foco) ---
