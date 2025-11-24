@@ -386,7 +386,7 @@ namespace MacKeyboardWindows
                     var u = new Uri($"Themes/{fileName}", UriKind.Relative);
                     var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
                     var themeDict = new ResourceDictionary { Source = u };
-                    
+
                     Application.Current.Resources.MergedDictionaries.Clear();
                     Application.Current.Resources.MergedDictionaries.Add(stylesDict);
                     Application.Current.Resources.MergedDictionaries.Add(themeDict);
@@ -399,7 +399,33 @@ namespace MacKeyboardWindows
                 else
                 {
                     // Si MainBorder aún no existe (no debería pasar si se llama en OnSourceInitialized), forzar callback
-                    fadeOut.Completed?.Invoke(this, EventArgs.Empty);
+                    // Ejecutar directamente el código del manejador en vez de invocar el evento
+                    string fileName;
+                    WindowBlur.EnableBlur(this, false); // Reset Blur
+
+                    if (themeName == "System")
+                    {
+                        var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
+                        fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
+                    }
+                    else if (themeName == "LiquidGlass")
+                    {
+                        fileName = "LiquidGlassTheme.xaml";
+                        WindowBlur.EnableBlur(this, true); // Activar Blur
+                    }
+                    else if (themeName == "Light") fileName = "LightTheme.xaml";
+                    else fileName = "DarkTheme.xaml";
+
+                    var u = new Uri($"Themes/{fileName}", UriKind.Relative);
+                    var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
+                    var themeDict = new ResourceDictionary { Source = u };
+
+                    Application.Current.Resources.MergedDictionaries.Clear();
+                    Application.Current.Resources.MergedDictionaries.Add(stylesDict);
+                    Application.Current.Resources.MergedDictionaries.Add(themeDict);
+
+                    // Fade In
+                    if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeIn);
                 }
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
