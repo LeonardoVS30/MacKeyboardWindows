@@ -342,6 +342,201 @@ namespace MacKeyboardWindows
                 {
                     if (toggleButton.ContextMenu != null)
                     {
+                var keyRowModel = layout[rowIndex];
+                var rowGrid = new Grid();
+                foreach (var keyModel in keyRowModel)
+                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(keyModel.WidthFactor, GridUnitType.Star) });
+
+                for (int colIndex = 0; colIndex < keyRowModel.Count; colIndex++)
+                {
+                    var keyModel = keyRowModel[colIndex];
+                    UIElement contentElement;
+
+                    // --- LÓGICA DE ICONOS ---
+                    if (keyModel.DisplayText.StartsWith("ICON_"))
+                    {
+                        // Es un icono: Crear un Path vectorial
+                        var path = new System.Windows.Shapes.Path
+                        {
+                            Style = (Style)FindResource("IconPathStyle"),
+                            Stretch = Stretch.Uniform,
+                            Height = 14, // Ajusta el tamaño del icono aquí
+                            Width = 14
+                        };
+
+                        // Elegir el dibujo según el nombre
+                        string resourceKey = keyModel.DisplayText switch
+                        {
+                            "ICON_DELETE" => "IconDelete",
+                            "ICON_MENU" => "IconMenu", // Icono de hamburguesa
+                            "ICON_WINDOWS" => "IconWindows",
+                            _ => ""
+                        };
+
+                        if (!string.IsNullOrEmpty(resourceKey))
+                        {
+                            path.Data = (Geometry)FindResource(resourceKey);
+                        }
+                        contentElement = path;
+                    }
+                    else
+                    {
+                        // Es texto normal
+                        var textBlock = new TextBlock { Style = (Style)FindResource(keyModel.DisplayText.Length > 2 ? "SmallKeyTextStyle" : "KeyTextStyle") };
+                        if (keyModel.DisplayText.Contains("\n"))
+                        {
+                            var parts = keyModel.DisplayText.Split('\n');
+                            textBlock.Inlines.Add(parts[0]);
+                            textBlock.Inlines.Add(new System.Windows.Documents.LineBreak());
+                            textBlock.Inlines.Add(parts[1]);
+                            textBlock.TextAlignment = TextAlignment.Center;
+                        }
+                        else
+                        {
+                            textBlock.Text = keyModel.DisplayText;
+                        }
+
+                        // Guardar referencias para actualizar texto (Caps/Shift)
+                        if (keyModel.IsLetter) _letterKeys.Add(Tuple.Create(textBlock, keyModel));
+                        else if (!string.IsNullOrEmpty(keyModel.ShiftDisplayText)) _symbolKeys.Add(Tuple.Create(textBlock, keyModel));
+
+                        contentElement = textBlock;
+                    }
+                    // -------------------------
+
+                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel };
+                    border.MouseLeftButtonDown += Key_MouseLeftButtonDown;
+                    Grid.SetColumn(border, colIndex);
+                    rowGrid.Children.Add(border);
+
+                    if (!_wpfKeyToBorderMap.ContainsKey(keyModel.WpfKey)) _wpfKeyToBorderMap.Add(keyModel.WpfKey, border);
+
+                    if (keyModel.WpfKey == Key.Capital) _capsLockBorder = border;
+                    if (keyModel.WpfKey == Key.LeftShift) _leftShiftBorder = border;
+                    if (keyModel.WpfKey == Key.RightShift) _rightShiftBorder = border;
+                }
+                Grid.SetRow(rowGrid, rowIndex);
+                KeyboardContainer.Children.Add(rowGrid);
+            }
+        }
+        #endregion
+
+        #region Keyboard State Management
+        private bool IsCapsLocked() => (GetKeyState(VK_CAPITAL) & 1) != 0;
+        private bool IsShiftPressed() => (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+
+        private void UpdateKeyboardState()
+        {
+            bool capsLockOn = IsCapsLocked();
+            bool shiftDown = IsShiftPressed();
+            bool isUppercase = capsLockOn ^ shiftDown;
+
+            // Actualizar textos
+            foreach (var (textBlock, keyModel) in _letterKeys)
+                textBlock.Text = isUppercase ? keyModel.DisplayText.ToUpper() : keyModel.DisplayText.ToLower();
+            foreach (var (textBlock, keyModel) in _symbolKeys)
+                textBlock.Text = shiftDown ? keyModel.ShiftDisplayText : keyModel.DisplayText;
+
+            // Actualizar teclas de estado (Bloq Mayus / Shift)
+            if (_capsLockBorder != null) _capsLockBorder.Background = capsLockOn ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
+            if (_leftShiftBorder != null) _leftShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
+            if (_rightShiftBorder != null) _rightShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
+        }
+        #endregion
+
+        #region Input Handlers (Mouse & Keyboard)
+
+        // Clic del ratón en una tecla virtual
+        private async void Key_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is KeyModel keyModel)
+            {
+                e.Handled = true;
+
+                // 1. Sonido
+                PlaySoundForKey(keyModel.WpfKey);
+
+                // 2. Feedback Visual Inmediato
+                border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+
+                // 3. Simular pulsación
+                _isSimulating = true;
+                _keyboardService.SimulateKeyPress(keyModel.KeyCode);
+                _isSimulating = false;
+
+                // 4. Esperar y actualizar estado
+                await Task.Delay(50);
+                UpdateKeyboardState();
+
+                // 5. Quitar feedback visual si no es tecla de estado
+                if (keyModel.WpfKey != Key.Capital && keyModel.WpfKey != Key.LeftShift && keyModel.WpfKey != Key.RightShift)
+                {
+                    await Task.Delay(50);
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                }
+            }
+        }
+
+        // Hooks del teclado físico
+        private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
+        private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
+
+        private void KeyboardHookService_KeyDown(object sender, Key e)
+        {
+            if (_isSimulating) return;
+            Dispatcher.Invoke(() =>
+            {
+                PlaySoundForKey(e);
+                HighlightKey(e, true);
+            });
+        }
+
+        private void KeyboardHookService_KeyUp(object sender, Key e)
+        {
+            if (_isSimulating) return;
+            Dispatcher.Invoke(() => HighlightKey(e, false));
+        }
+
+        private void HighlightKey(Key key, bool isPressed)
+        {
+            // Ignorar teclas de estado aquí (las maneja UpdateKeyboardState)
+            if (key == Key.Capital || key == Key.LeftShift || key == Key.RightShift) return;
+
+            if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
+            {
+                if (isPressed) border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                else border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+            }
+        }
+
+        private void PlaySoundForKey(Key key)
+        {
+            if (key == Key.Space || key == Key.Return || key == Key.Back ||
+                key == Key.LeftShift || key == Key.RightShift ||
+                key == Key.Capital || key == Key.Tab ||
+                key == Key.LeftCtrl || key == Key.RightCtrl ||
+                key == Key.LeftAlt || key == Key.RightAlt)
+            {
+                _soundService.PlayModifier();
+            }
+            else
+            {
+                _soundService.PlayClick();
+            }
+        }
+        #endregion
+
+        #region UI Logic (Themes, Menu, Chrome)
+
+        // --- Lógica del Menú Animado (Hamburguesa) ---
+        private void MenuToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Primitives.ToggleButton toggleButton)
+            {
+                if (toggleButton.IsChecked == true)
+                {
+                    if (toggleButton.ContextMenu != null)
+                    {
                         toggleButton.ContextMenu.PlacementTarget = toggleButton;
                         toggleButton.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
                         toggleButton.ContextMenu.IsOpen = true;
@@ -365,6 +560,7 @@ namespace MacKeyboardWindows
 
         // --- Opciones Generales ---
         private void Opacity_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o)) MainBorder.Opacity = o; }
+        
         private void Zoom_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
@@ -380,6 +576,7 @@ namespace MacKeyboardWindows
                 WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
             }
         }
+
         private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) ApplyTheme(th); }
         private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) _soundService.IsEnabled = mi.IsChecked; }
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => Close();
@@ -487,8 +684,13 @@ namespace MacKeyboardWindows
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
 
-
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
+
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ButtonState == MouseButtonState.Pressed)
+                DragMove();
+        }
 
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
@@ -553,6 +755,7 @@ namespace MacKeyboardWindows
             // Aplicar tema inicial (ahora que la ventana está lista y MainBorder existe)
             ApplyTheme("System");
         }
+        #endregion
 
         #region Window Blur Class
         internal static class WindowBlur
@@ -576,7 +779,6 @@ namespace MacKeyboardWindows
                 Marshal.FreeHGlobal(accentPtr);
             }
         }
-        #endregion
         #endregion
     }
 }
