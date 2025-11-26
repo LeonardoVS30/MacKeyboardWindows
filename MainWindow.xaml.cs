@@ -486,6 +486,10 @@ namespace MacKeyboardWindows
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
+        }
+
+        private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
+
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
             // Animación de minimizar estilo macOS (Genie-like approximation: Scale Down + Translate Down + Fade Out)
