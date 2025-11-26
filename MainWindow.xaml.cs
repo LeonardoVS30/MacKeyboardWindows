@@ -486,7 +486,7 @@ namespace MacKeyboardWindows
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
-        }
+
 
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
 
