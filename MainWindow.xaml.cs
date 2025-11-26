@@ -13,6 +13,7 @@ using MacKeyboardWindows.Models;
 using MacKeyboardWindows.Services;
 using Microsoft.Win32;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 
 namespace MacKeyboardWindows
 {
@@ -415,35 +416,76 @@ namespace MacKeyboardWindows
         {
             try
             {
-                // Animación "Washed" (Fade Out -> Change Theme -> Fade In)
-                var duration = TimeSpan.FromMilliseconds(200);
-                var fadeOut = new DoubleAnimation(0.5, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-                var fadeIn = new DoubleAnimation(1.0, duration) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
-
-                fadeOut.Completed += (s, e) =>
+                // 1. Capture Snapshot of the current state (Old Theme)
+                if (MainBorder.ActualWidth > 0 && MainBorder.ActualHeight > 0)
                 {
-                    LoadThemeResources(themeName);
-
-                    // Fade In
-                    if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeIn);
-                };
-
-                if (MainBorder != null) MainBorder.BeginAnimation(OpacityProperty, fadeOut);
-                else
-                {
-                    // Si MainBorder aún no existe (no debería pasar si se llama en OnSourceInitialized), forzar callback
-                    // Ejecutar directamente la carga de recursos
-                    LoadThemeResources(themeName);
+                    // Render the MainBorder to a bitmap
+                    var rtb = new RenderTargetBitmap((int)MainBorder.ActualWidth, (int)MainBorder.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    rtb.Render(MainBorder);
+                    
+                    // Set as source for the transition image
+                    TransitionImage.Source = rtb;
+                    TransitionOverlay.Visibility = Visibility.Visible;
                 }
+
+                // 2. Change Theme Resources (Underneath the overlay)
+                LoadThemeResources(themeName);
+
+                // 3. Setup Transition Animation
+                // We want to wipe the Old Theme (TransitionImage) away from Left to Right.
+                // Mask: Gradient [Transparent ... Black]. Move Transparent region from Left to Right.
+                
+                var maskBrush = new LinearGradientBrush
+                {
+                    StartPoint = new Point(0, 0),
+                    EndPoint = new Point(1, 0)
+                };
+                
+                // Initial state: All Black (Visible).
+                // We start with the transparent part off-screen to the left.
+                var stopTransparent = new GradientStop(Colors.Transparent, -0.2);
+                var stopBlack = new GradientStop(Colors.Black, -0.1); 
+                
+                maskBrush.GradientStops.Add(stopTransparent);
+                maskBrush.GradientStops.Add(stopBlack);
+                
+                TransitionImage.OpacityMask = maskBrush;
+
+                // Animation Parameters
+                var duration = TimeSpan.FromMilliseconds(800); // Slower, liquid feel
+                var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+                // Animate Offsets to move the "Transparent" window across the screen
+                var animTransparent = new DoubleAnimation(1.0, duration) { EasingFunction = ease };
+                var animBlack = new DoubleAnimation(1.1, duration) { EasingFunction = ease };
+                
+                stopTransparent.BeginAnimation(GradientStop.OffsetProperty, animTransparent);
+                stopBlack.BeginAnimation(GradientStop.OffsetProperty, animBlack);
+
+                // 4. Animate Glass Wave (The "Liquid" edge)
+                // It should follow the edge of the mask.
+                TransitionGlassWave.Opacity = 0.8;
+                var waveWidth = TransitionGlassWave.Width;
+                var startX = -waveWidth;
+                var endX = MainBorder.ActualWidth;
+                
+                var waveAnim = new DoubleAnimation(startX, endX, duration) { EasingFunction = ease };
+                
+                GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, waveAnim);
+                
+                // Cleanup when done
+                waveAnim.Completed += (s, args) =>
+                {
+                    TransitionOverlay.Visibility = Visibility.Collapsed;
+                    TransitionImage.Source = null;
+                    TransitionImage.OpacityMask = null;
+                    // Reset wave
+                    GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+                    GlassWaveTranslate.X = -100;
+                };
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
-
-        private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
-
-        // --- Botones de la ventana ---
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
-        
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
             // Animación de minimizar estilo macOS (Genie-like approximation: Scale Down + Translate Down + Fade Out)
