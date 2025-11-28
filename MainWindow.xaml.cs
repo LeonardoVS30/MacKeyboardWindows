@@ -258,12 +258,47 @@ namespace MacKeyboardWindows
                 e.Handled = true;
 
                 // 1. Sonido
-                // Restaurar escala física
+                PlaySoundForKey(keyModel.WpfKey);
+
+                // 2. Feedback Visual Inmediato (Color + Escala)
+                border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+
+                // Animación de escala "Tactile Click"
+                var scaleDown = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50));
+                var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+
                 if (border.RenderTransform is ScaleTransform st)
                 {
-                    var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
-                    st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
-                    st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
+                    if (st.IsFrozen)
+                    {
+                        st = st.Clone();
+                        border.RenderTransform = st;
+                    }
+                    st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleDown);
+                    st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleDown);
+                }
+
+                // 3. Simular pulsación
+                _isSimulating = true;
+                _keyboardService.SimulateKeyPress(keyModel.KeyCode);
+                _isSimulating = false;
+
+                // 4. Esperar y actualizar estado
+                await Task.Delay(50);
+                UpdateKeyboardState();
+
+                // 5. Quitar feedback visual si no es tecla de estado
+                if (keyModel.WpfKey != Key.Capital && keyModel.WpfKey != Key.LeftShift && keyModel.WpfKey != Key.RightShift)
+                {
+                    await Task.Delay(50);
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                    
+                    // Restaurar escala
+                    if (border.RenderTransform is ScaleTransform stRestore)
+                    {
+                        stRestore.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+                        stRestore.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
+                    }
                 }
             }
         }
@@ -281,6 +316,58 @@ namespace MacKeyboardWindows
             else
             {
                 _soundService.PlayClick();
+            }
+        }
+
+        private void KeyboardHookService_KeyDown(object sender, Key e)
+        {
+            if (_isSimulating) return;
+            Dispatcher.Invoke(() =>
+            {
+                PlaySoundForKey(e);
+                HighlightKey(e, true);
+            });
+        }
+
+        private void KeyboardHookService_KeyUp(object sender, Key e)
+        {
+            if (_isSimulating) return;
+            Dispatcher.Invoke(() => HighlightKey(e, false));
+        }
+
+        private void HighlightKey(Key key, bool isPressed)
+        {
+            // Ignorar teclas de estado aquí (las maneja UpdateKeyboardState)
+            if (key == Key.Capital || key == Key.LeftShift || key == Key.RightShift) return;
+
+            if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
+            {
+                if (isPressed)
+                {
+                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                    // Animación de escala física
+                    if (border.RenderTransform is ScaleTransform st)
+                    {
+                        if (st.IsFrozen)
+                        {
+                            st = st.Clone();
+                            border.RenderTransform = st;
+                        }
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
+                    }
+                }
+                else
+                {
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                    // Restaurar escala física
+                    if (border.RenderTransform is ScaleTransform st)
+                    {
+                        var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
+                    }
+                }
             }
         }
         #endregion
@@ -463,15 +550,9 @@ namespace MacKeyboardWindows
             ApplyTheme("System");
         }
 
-        private void StopKeyboardHook()
-        {
-            _keyboardHookService?.Dispose();
-        }
+        private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
 
-        private void StartKeyboardHook()
-        {
-            _keyboardHookService?.Start();
-        }
+        private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
     }
 
     #region Window Blur Class
