@@ -15,15 +15,12 @@
         <ControlTemplate x:Key="HamburgerMenuTemplate" TargetType="ToggleButton">
             <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
                 <Grid Width="16" Height="14" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <!-- Línea Superior -->
                     <Rectangle x:Name="TopLine" Height="2" Width="16" VerticalAlignment="Top" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
                             <RotateTransform Angle="0"/>
                         </Rectangle.RenderTransform>
                     </Rectangle>
-                    <!-- Línea Central -->
                     <Rectangle x:Name="MiddleLine" Height="2" Width="16" VerticalAlignment="Center" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" Opacity="1"/>
-                    <!-- Línea Inferior -->
                     <Rectangle x:Name="BottomLine" Height="2" Width="16" VerticalAlignment="Bottom" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
                             <RotateTransform Angle="0"/>
@@ -32,7 +29,6 @@
                 </Grid>
             </Border>
             <ControlTemplate.Triggers>
-                <!-- Animación al abrir (Checked): Transforma en X -->
                 <Trigger Property="IsChecked" Value="True">
                     <Setter TargetName="TopLine" Property="RenderTransform">
                         <Setter.Value>
@@ -60,101 +56,109 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <Border Name="MainBorder" Width="1100" MinHeight="350" 
-            Background="{DynamicResource WindowBackgroundColor}" 
-            CornerRadius="12" 
-            BorderBrush="{DynamicResource WindowBorderColor}" 
-            BorderThickness="1">
-        
-        <!-- Transformación para el Zoom -->
-        <Border.LayoutTransform>
-            <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
-        </Border.LayoutTransform>
+    <!-- CONTENEDOR PRINCIPAL CON LA TRANSFORMACIÓN DE ESCALA -->
+    <Grid>
+        <Border Name="MainBorder" Width="1100" MinHeight="350" 
+                Background="{DynamicResource WindowBackgroundColor}" 
+                CornerRadius="12" 
+                BorderBrush="{DynamicResource WindowBorderColor}" 
+                BorderThickness="1">
 
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Barra de título -->
-                <RowDefinition Height="*"/>    <!-- Teclado -->
-            </Grid.RowDefinitions>
+            <!-- AQUÍ ESTÁ EL SCALE TRANSFORM QUE BUSCA EL CÓDIGO C# -->
+            <Border.LayoutTransform>
+                <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
+            </Border.LayoutTransform>
 
-            <!-- Fila 0: Barra de título Estilizada -->
-            <Grid Grid.Row="0" Margin="10,8,10,5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <!-- Menú -->
-                    <ColumnDefinition Width="*"/>    <!-- Espacio vacío -->
-                    <ColumnDefinition Width="Auto"/> <!-- Botones acción derecha -->
-                </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <!-- BOTÓN DE MENÚ (Hamburguesa Animada) -->
-                <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" 
-                              Template="{StaticResource HamburgerMenuTemplate}"
-                              Click="MenuToggleButton_Click">
-                    <ToggleButton.ContextMenu>
-                        <ContextMenu x:Name="MainMenu" Style="{StaticResource AppContextMenuStyle}" Closed="MainMenu_Closed">
-                            <MenuItem Header="Appearance">
-                                <MenuItem Header="System Theme" Tag="System" Click="Theme_Click"/>
+                <!-- Barra de título -->
+                <Grid Grid.Row="0" Margin="10,8,10,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Menú Hamburguesa -->
+                    <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" Template="{StaticResource HamburgerMenuTemplate}" Click="MenuToggleButton_Click">
+                        <ToggleButton.ContextMenu>
+                            <ContextMenu x:Name="MainMenu" Style="{StaticResource AppContextMenuStyle}" Closed="MainMenu_Closed">
+                                <MenuItem Header="Appearance">
+                                    <MenuItem Header="System Theme" Tag="System" Click="Theme_Click"/>
+                                    <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                    <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
+                                    <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
+                                    <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
+                                </MenuItem>
+                                <MenuItem Header="Opacity">
+                                    <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
+                                    <MenuItem Header="90%" Tag="0.9" Click="Opacity_Click"/>
+                                    <MenuItem Header="80%" Tag="0.8" Click="Opacity_Click"/>
+                                    <MenuItem Header="70%" Tag="0.7" Click="Opacity_Click"/>
+                                </MenuItem>
+                                <MenuItem Header="Zoom">
+                                    <MenuItem Header="50%" Tag="0.5" Click="Zoom_Click"/>
+                                    <MenuItem Header="75%" Tag="0.75" Click="Zoom_Click"/>
+                                    <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                    <MenuItem Header="100% (Default)" Tag="1.0" Click="Zoom_Click"/>
+                                    <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                    <MenuItem Header="125%" Tag="1.25" Click="Zoom_Click"/>
+                                    <MenuItem Header="150%" Tag="1.5" Click="Zoom_Click"/>
+                                    <MenuItem Header="200%" Tag="2.0" Click="Zoom_Click"/>
+                                    <MenuItem Header="250%" Tag="2.5" Click="Zoom_Click"/>
+                                </MenuItem>
+                                <MenuItem Header="Distribución">
+                                    <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
+                                    <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
+                                </MenuItem>
+                                <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
                                 <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
-                                <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
-                                <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
-                            </MenuItem>
-                            <MenuItem Header="Opacity">
-                                <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
-                                <MenuItem Header="90%" Tag="0.9" Click="Opacity_Click"/>
-                                <MenuItem Header="80%" Tag="0.8" Click="Opacity_Click"/>
-                                <MenuItem Header="70%" Tag="0.7" Click="Opacity_Click"/>
-                            </MenuItem>
-                            <MenuItem Header="Zoom">
-                                <MenuItem Header="50%" Tag="0.5" Click="Zoom_Click"/>
-                                <MenuItem Header="75%" Tag="0.75" Click="Zoom_Click"/>
-                                <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                <MenuItem Header="100% (Default)" Tag="1.0" Click="Zoom_Click"/>
-                                <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                <MenuItem Header="125%" Tag="1.25" Click="Zoom_Click"/>
-                                <MenuItem Header="150%" Tag="1.5" Click="Zoom_Click"/>
-                                <MenuItem Header="200%" Tag="2.0" Click="Zoom_Click"/>
-                                <MenuItem Header="250%" Tag="2.5" Click="Zoom_Click"/>
-                            </MenuItem>
-                            <MenuItem Header="Distribución">
-                                <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
-                                <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
-                            </MenuItem>
-                            <!-- Opción de Sonido con Checkbox -->
-                            <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
-                            
-                            <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                            <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
-                        </ContextMenu>
-                    </ToggleButton.ContextMenu>
-                </ToggleButton>
+                                <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
+                            </ContextMenu>
+                        </ToggleButton.ContextMenu>
+                    </ToggleButton>
 
-                <!-- Botones a la derecha (Estilo Neumórfico/Apple Monocromo) -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    
-                    <!-- Botón Minimizar -->
-                    <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
-                            ToolTip="Minimizar" 
-                            MouseLeftButtonDown="MinimizeButton_Click">
-                        <Path Data="{StaticResource IconWindowMinimize}" 
-                              Style="{StaticResource NeumorphicHeaderIconStyle}"
-                              Width="8" Height="2"/>
-                    </Border>
+                    <!-- Botones Neumórficos -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" ToolTip="Minimizar" MouseLeftButtonDown="MinimizeButton_Click">
+                            <Path Data="{StaticResource IconWindowMinimize}" Style="{StaticResource NeumorphicHeaderIconStyle}" Width="8" Height="2"/>
+                        </Border>
+                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" ToolTip="Cerrar" MouseLeftButtonDown="CloseButton_Click">
+                            <Path Data="{StaticResource IconWindowClose}" Style="{StaticResource NeumorphicHeaderIconStyle}" Width="8" Height="8"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
 
-                    <!-- Botón Cerrar -->
-                    <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
-                            ToolTip="Cerrar" 
-                            MouseLeftButtonDown="CloseButton_Click">
-                        <Path Data="{StaticResource IconWindowClose}" 
-                              Style="{StaticResource NeumorphicHeaderIconStyle}"
-                              Width="8" Height="8"/>
-                    </Border>
-                    
-                </StackPanel>
+                <!-- Contenedor del Teclado -->
+                <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
             </Grid>
+        </Border>
 
-            <!-- CONTENEDOR DINÁMICO PARA EL TECLADO (Se llena desde C#) -->
-            <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
+        <!-- CAPA DE TRANSICIÓN PARA LA ANIMACIÓN DE TEMA -->
+        <!-- Se superpone al borde principal para mostrar el tema antiguo mientras se anima -->
+        <Grid x:Name="TransitionOverlay" Visibility="Collapsed" IsHitTestVisible="False">
+            <Grid.LayoutTransform>
+                <!-- Aplicamos la misma escala para que coincida exactamente -->
+                <ScaleTransform ScaleX="{Binding ElementName=WindowScaleTransform, Path=ScaleX}" 
+                                 ScaleY="{Binding ElementName=WindowScaleTransform, Path=ScaleY}"/>
+            </Grid.LayoutTransform>
 
+            <!-- Imagen del tema antiguo -->
+            <Image x:Name="TransitionImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
+            <!-- Onda de cristal que barre la pantalla -->
+            <Border x:Name="TransitionGlassWave" Width="50" HorizontalAlignment="Left" VerticalAlignment="Stretch" Background="#40FFFFFF">
+                <Border.Effect>
+                    <BlurEffect Radius="20"/>
+                </Border.Effect>
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="GlassWaveTranslate" X="-100"/>
+                </Border.RenderTransform>
+            </Border>
         </Grid>
-    </Border>
+    </Grid>
 </Window>

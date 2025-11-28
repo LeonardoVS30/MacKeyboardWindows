@@ -12,8 +12,6 @@ using System.Windows.Threading;
 using MacKeyboardWindows.Models;
 using MacKeyboardWindows.Services;
 using Microsoft.Win32;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
 
 namespace MacKeyboardWindows
 {
@@ -48,6 +46,9 @@ namespace MacKeyboardWindows
 
         public MainWindow()
         {
+            // Aplicar tema inicial
+            ApplyTheme("System");
+
             InitializeComponent();
 
             _keyboardService = new KeyboardService();
@@ -59,23 +60,6 @@ namespace MacKeyboardWindows
 
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;
-            StateChanged += MainWindow_StateChanged;
-        }
-
-        private void MainWindow_StateChanged(object sender, EventArgs e)
-        {
-            if (WindowState == WindowState.Normal)
-            {
-                // 1. Eliminar animaciones de Opacidad
-                MainBorder.BeginAnimation(Border.OpacityProperty, null);
-                MainBorder.Opacity = 1.0;
-
-                // 2. Eliminar animaciones de Transformación
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                WindowScaleTransform.ScaleX = 1.0;
-                WindowScaleTransform.ScaleY = 1.0;
-            }
         }
 
         #region Window Lifetime & Layout Loading
@@ -94,26 +78,22 @@ namespace MacKeyboardWindows
             _keyboardStateTimer.Stop();
         }
 
+        private void Layout_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string layoutName) LoadLayout(layoutName);
+        }
+
         private void LoadLayout(string name)
         {
             _currentLayout = name;
             var layout = LayoutFactory.GetLayout(name);
-
-            // Cargar layout directamente para evitar problemas de visualización
             BuildKeyboardUI(layout);
             UpdateKeyboardState();
-            KeyboardContainer.Opacity = 1.0;
         }
+        #endregion
 
-        private void Layout_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string layoutCode)
-            {
-                LoadLayout(layoutCode);
-            }
-        }
-
-        private void BuildKeyboardUI(List<KeyRow> layout)
+        #region Dynamic UI Builder
+        private void BuildKeyboardUI(KeyboardLayout layout)
         {
             KeyboardContainer.Children.Clear();
             KeyboardContainer.RowDefinitions.Clear();
@@ -123,7 +103,7 @@ namespace MacKeyboardWindows
             _capsLockBorder = null; _leftShiftBorder = null; _rightShiftBorder = null;
 
             for (int i = 0; i < layout.Count; i++)
-                KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
             for (int rowIndex = 0; rowIndex < layout.Count; rowIndex++)
             {
@@ -137,36 +117,28 @@ namespace MacKeyboardWindows
                     var keyModel = keyRowModel[colIndex];
                     UIElement contentElement;
 
-                    // --- LÓGICA DE ICONOS ---
+                    // Lógica de Iconos
                     if (keyModel.DisplayText.StartsWith("ICON_"))
                     {
-                        // Es un icono: Crear un Path vectorial
                         var path = new System.Windows.Shapes.Path
                         {
                             Style = (Style)FindResource("IconPathStyle"),
                             Stretch = Stretch.Uniform,
-                            Height = 14, // Ajusta el tamaño del icono aquí
+                            Height = 14,
                             Width = 14
                         };
-
-                        // Elegir el dibujo según el nombre
                         string resourceKey = keyModel.DisplayText switch
                         {
                             "ICON_DELETE" => "IconDelete",
-                            "ICON_MENU" => "IconMenu", // Icono de hamburguesa
+                            "ICON_MENU" => "IconMenu",
                             "ICON_WINDOWS" => "IconWindows",
                             _ => ""
                         };
-
-                        if (!string.IsNullOrEmpty(resourceKey))
-                        {
-                            path.Data = (Geometry)FindResource(resourceKey);
-                        }
+                        if (!string.IsNullOrEmpty(resourceKey)) path.Data = (Geometry)FindResource(resourceKey);
                         contentElement = path;
                     }
                     else
                     {
-                        // Es texto normal
                         var textBlock = new TextBlock { Style = (Style)FindResource(keyModel.DisplayText.Length > 2 ? "SmallKeyTextStyle" : "KeyTextStyle") };
                         if (keyModel.DisplayText.Contains("\n"))
                         {
@@ -176,26 +148,20 @@ namespace MacKeyboardWindows
                             textBlock.Inlines.Add(parts[1]);
                             textBlock.TextAlignment = TextAlignment.Center;
                         }
-                        else
-                        {
-                            textBlock.Text = keyModel.DisplayText;
-                        }
+                        else textBlock.Text = keyModel.DisplayText;
 
-                        // Guardar referencias para actualizar texto (Caps/Shift)
                         if (keyModel.IsLetter) _letterKeys.Add(Tuple.Create(textBlock, keyModel));
                         else if (!string.IsNullOrEmpty(keyModel.ShiftDisplayText)) _symbolKeys.Add(Tuple.Create(textBlock, keyModel));
 
                         contentElement = textBlock;
                     }
-                    // -------------------------
 
-                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel, Height = 60 };
+                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel };
                     border.MouseLeftButtonDown += Key_MouseLeftButtonDown;
                     Grid.SetColumn(border, colIndex);
                     rowGrid.Children.Add(border);
 
                     if (!_wpfKeyToBorderMap.ContainsKey(keyModel.WpfKey)) _wpfKeyToBorderMap.Add(keyModel.WpfKey, border);
-
                     if (keyModel.WpfKey == Key.Capital) _capsLockBorder = border;
                     if (keyModel.WpfKey == Key.LeftShift) _leftShiftBorder = border;
                     if (keyModel.WpfKey == Key.RightShift) _rightShiftBorder = border;
@@ -216,13 +182,11 @@ namespace MacKeyboardWindows
             bool shiftDown = IsShiftPressed();
             bool isUppercase = capsLockOn ^ shiftDown;
 
-            // Actualizar textos
             foreach (var (textBlock, keyModel) in _letterKeys)
                 textBlock.Text = isUppercase ? keyModel.DisplayText.ToUpper() : keyModel.DisplayText.ToLower();
             foreach (var (textBlock, keyModel) in _symbolKeys)
                 textBlock.Text = shiftDown ? keyModel.ShiftDisplayText : keyModel.DisplayText;
 
-            // Actualizar teclas de estado (Bloq Mayus / Shift)
             if (_capsLockBorder != null) _capsLockBorder.Background = capsLockOn ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
             if (_leftShiftBorder != null) _leftShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
             if (_rightShiftBorder != null) _rightShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
@@ -231,60 +195,25 @@ namespace MacKeyboardWindows
 
         #region Input Handlers (Mouse & Keyboard)
 
-        // Clic del ratón en una tecla virtual
         private async void Key_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is Border border && border.Tag is KeyModel keyModel)
             {
                 e.Handled = true;
-
-                // 1. Sonido
                 PlaySoundForKey(keyModel.WpfKey);
-
-                // 2. Feedback Visual Inmediato (Color + Escala)
                 border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
 
-                // Animación de escala "Tactile Click"
-                var scaleDown = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50));
-                var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
-
-                if (border.RenderTransform is ScaleTransform st)
-                {
-                    if (st.IsFrozen)
-                    {
-                        st = st.Clone();
-                        border.RenderTransform = st;
-                    }
-                    st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleDown);
-                    st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleDown);
-                }
-
-                // 3. Simular pulsación
                 _isSimulating = true;
                 _keyboardService.SimulateKeyPress(keyModel.KeyCode);
                 _isSimulating = false;
 
-                // 4. Esperar y actualizar estado
                 await Task.Delay(50);
                 UpdateKeyboardState();
 
-                // 5. Quitar feedback visual si no es tecla de estado
                 if (keyModel.WpfKey != Key.Capital && keyModel.WpfKey != Key.LeftShift && keyModel.WpfKey != Key.RightShift)
                 {
                     await Task.Delay(50);
                     border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
-                    
-                    // Restaurar escala
-                    if (border.RenderTransform is ScaleTransform stRestore)
-                    {
-                        if (stRestore.IsFrozen)
-                        {
-                            stRestore = stRestore.Clone();
-                            border.RenderTransform = stRestore;
-                        }
-                        stRestore.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
-                        stRestore.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
-                    }
                 }
             }
         }
@@ -296,14 +225,13 @@ namespace MacKeyboardWindows
                 key == Key.Capital || key == Key.Tab ||
                 key == Key.LeftCtrl || key == Key.RightCtrl ||
                 key == Key.LeftAlt || key == Key.RightAlt)
-            {
                 _soundService.PlayModifier();
-            }
             else
-            {
                 _soundService.PlayClick();
-            }
         }
+
+        private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
+        private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
 
         private void KeyboardHookService_KeyDown(object sender, Key e)
         {
@@ -323,49 +251,17 @@ namespace MacKeyboardWindows
 
         private void HighlightKey(Key key, bool isPressed)
         {
-            // Ignorar teclas de estado aquí (las maneja UpdateKeyboardState)
             if (key == Key.Capital || key == Key.LeftShift || key == Key.RightShift) return;
 
             if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
             {
-                if (isPressed)
-                {
-                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
-                    // Animación de escala física
-                    if (border.RenderTransform is ScaleTransform st)
-                    {
-                        if (st.IsFrozen)
-                        {
-                            st = st.Clone();
-                            border.RenderTransform = st;
-                        }
-                        st.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
-                        st.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
-                    }
-                }
-                else
-                {
-                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
-                    // Restaurar escala física
-                    if (border.RenderTransform is ScaleTransform st)
-                    {
-                        if (st.IsFrozen)
-                        {
-                            st = st.Clone();
-                            border.RenderTransform = st;
-                        }
-                        var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
-                        st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
-                        st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
-                    }
-                }
+                if (isPressed) border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                else border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
             }
         }
         #endregion
 
         #region UI Logic (Themes, Menu, Chrome)
-
-        // --- Lógica del Menú Animado (Hamburguesa) ---
         private void MenuToggleButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.Primitives.ToggleButton toggleButton)
@@ -379,245 +275,90 @@ namespace MacKeyboardWindows
                         toggleButton.ContextMenu.IsOpen = true;
                     }
                 }
-                else
-                {
-                    if (toggleButton.ContextMenu != null) toggleButton.ContextMenu.IsOpen = false;
-                }
+                else if (toggleButton.ContextMenu != null) toggleButton.ContextMenu.IsOpen = false;
             }
         }
 
         private void MainMenu_Closed(object sender, RoutedEventArgs e)
         {
-            // Resetear el botón de hamburguesa a su estado original (3 líneas)
             if (sender is ContextMenu menu && menu.PlacementTarget is System.Windows.Controls.Primitives.ToggleButton toggleButton)
-            {
                 toggleButton.IsChecked = false;
-            }
         }
 
-        // --- Opciones Generales ---
         private void Opacity_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o)) MainBorder.Opacity = o; }
-        
-        private void Zoom_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
-            {
-                // Animación suave de escala (Tahoe 26 Style: QuinticEase)
-                var duration = TimeSpan.FromMilliseconds(400);
-                var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
-
-                var animX = new DoubleAnimation(f, duration) { EasingFunction = ease };
-                var animY = new DoubleAnimation(f, duration) { EasingFunction = ease };
-
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
-            }
-        }
-
+        private void Zoom_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f)) { WindowScaleTransform.ScaleX = f; WindowScaleTransform.ScaleY = f; } }
         private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) ApplyTheme(th); }
         private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) _soundService.IsEnabled = mi.IsChecked; }
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => Close();
-
-        // --- Temas y Blur ---
-        private void LoadThemeResources(string themeName)
-        {
-            string fileName;
-            WindowBlur.EnableBlur(this, false); // Reset Blur
-
-            if (themeName == "System")
-            {
-                var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
-                fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
-            }
-            else if (themeName == "LiquidGlass")
-            {
-                fileName = "LiquidGlassTheme.xaml";
-                WindowBlur.EnableBlur(this, true); // Activar Blur
-            }
-            else if (themeName == "Light") fileName = "LightTheme.xaml";
-            else fileName = "DarkTheme.xaml";
-
-            var u = new Uri($"Themes/{fileName}", UriKind.Relative);
-            var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
-            var themeDict = new ResourceDictionary { Source = u };
-
-            Application.Current.Resources.MergedDictionaries.Clear();
-            Application.Current.Resources.MergedDictionaries.Add(stylesDict);
-            Application.Current.Resources.MergedDictionaries.Add(themeDict);
-        }
 
         private void ApplyTheme(string themeName)
         {
             try
             {
-                // 1. Capture Snapshot of the current state (Old Theme)
-                if (MainBorder.ActualWidth > 0 && MainBorder.ActualHeight > 0)
+                string fileName;
+                WindowBlur.EnableBlur(this, false); // Reset Blur
+
+                if (themeName == "System")
                 {
-                    // Render the MainBorder to a bitmap
-                    var rtb = new RenderTargetBitmap((int)MainBorder.ActualWidth, (int)MainBorder.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-                    rtb.Render(MainBorder);
-                    
-                    // Set as source for the transition image
-                    TransitionImage.Source = rtb;
-                    TransitionOverlay.Visibility = Visibility.Visible;
+                    var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1);
+                    fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml";
                 }
-
-                // 2. Change Theme Resources (Underneath the overlay)
-                LoadThemeResources(themeName);
-
-                // 3. Setup Transition Animation
-                // We want to wipe the Old Theme (TransitionImage) away from Left to Right.
-                // Mask: Gradient [Transparent ... Black]. Move Transparent region from Left to Right.
-                
-                var maskBrush = new LinearGradientBrush
+                else if (themeName == "LiquidGlass")
                 {
-                    StartPoint = new Point(0, 0),
-                    EndPoint = new Point(1, 0)
-                };
-                
-                // Initial state: All Black (Visible).
-                // We start with the transparent part off-screen to the left.
-                var stopTransparent = new GradientStop(Colors.Transparent, -0.2);
-                var stopBlack = new GradientStop(Colors.Black, -0.1); 
-                
-                maskBrush.GradientStops.Add(stopTransparent);
-                maskBrush.GradientStops.Add(stopBlack);
-                
-                TransitionImage.OpacityMask = maskBrush;
+                    fileName = "LiquidGlassTheme.xaml";
+                    WindowBlur.EnableBlur(this, true); // Activar Blur
+                }
+                else if (themeName == "Light") fileName = "LightTheme.xaml";
+                else fileName = "DarkTheme.xaml";
 
-                // Animation Parameters
-                var duration = TimeSpan.FromMilliseconds(800); // Slower, liquid feel
-                var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+                var themeUri = new Uri($"Themes/{fileName}", UriKind.Relative); // Aquí definimos themeUri correctamente
+                var stylesDict = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
+                var themeDict = new ResourceDictionary { Source = themeUri };
 
-                // Animate Offsets to move the "Transparent" window across the screen
-                var animTransparent = new DoubleAnimation(1.0, duration) { EasingFunction = ease };
-                var animBlack = new DoubleAnimation(1.1, duration) { EasingFunction = ease };
-                
-                stopTransparent.BeginAnimation(GradientStop.OffsetProperty, animTransparent);
-                stopBlack.BeginAnimation(GradientStop.OffsetProperty, animBlack);
-
-                // 4. Animate Glass Wave (The "Liquid" edge)
-                // It should follow the edge of the mask.
-                TransitionGlassWave.Opacity = 0.8;
-                var waveWidth = TransitionGlassWave.Width;
-                var startX = -waveWidth;
-                var endX = MainBorder.ActualWidth;
-                
-                var waveAnim = new DoubleAnimation(startX, endX, duration) { EasingFunction = ease };
-                
-                GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, waveAnim);
-                
-                // Cleanup when done
-                waveAnim.Completed += (s, args) =>
-                {
-                    TransitionOverlay.Visibility = Visibility.Collapsed;
-                    TransitionImage.Source = null;
-                    TransitionImage.OpacityMask = null;
-                    // Reset wave
-                    GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-                    GlassWaveTranslate.X = -100;
-                };
+                Application.Current.Resources.MergedDictionaries.Clear();
+                Application.Current.Resources.MergedDictionaries.Add(stylesDict);
+                Application.Current.Resources.MergedDictionaries.Add(themeDict);
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
 
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
-
-        // --- Botones de la ventana ---
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
-
-
-        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
-        {
-            // Animación de minimizar estilo macOS Tahoe 26 (Smoother Genie-like)
-            var duration = TimeSpan.FromMilliseconds(500);
-            var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
-
-            var scaleX = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
-            var scaleY = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
-            var fade = new DoubleAnimation(0, duration) { EasingFunction = ease };
-
-            var sb = new Storyboard();
-
-            Storyboard.SetTargetName(scaleX, "WindowScaleTransform");
-            Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
-
-            Storyboard.SetTargetName(scaleY, "WindowScaleTransform");
-            Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
-
-            Storyboard.SetTarget(fade, MainBorder);
-            Storyboard.SetTargetProperty(fade, new PropertyPath(Border.OpacityProperty));
-
-            sb.Children.Add(scaleX);
-            sb.Children.Add(scaleY);
-            sb.Children.Add(fade);
-
-            sb.Completed += (s, args) =>
-            {
-                WindowState = WindowState.Minimized;
-
-                // Detener el storyboard para liberar las propiedades
-                sb.Stop(this);
-
-                // Resetear estado inmediatamente (aunque no se vea)
-                WindowScaleTransform.ScaleX = 1.0;
-                WindowScaleTransform.ScaleY = 1.0;
-                MainBorder.Opacity = 1.0;
-            };
-
-            sb.Begin(this);
-        }
-
+        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e) => WindowState = WindowState.Minimized;
         private void CloseButton_Click(object sender, MouseButtonEventArgs e) => Close();
 
-        // --- Lógica para hacer la ventana "No Activable" (No roba foco) ---
+        // No Activable (No roba foco)
         protected override void OnSourceInitialized(EventArgs e)
         {
-            base.OnSourceInitialized(e);    
+            base.OnSourceInitialized(e);
             var helper = new WindowInteropHelper(this);
             var hwnd = helper.Handle;
             var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
+        }
 
-            // Aplicar tema inicial (ahora que la ventana está lista y MainBorder existe)
-            ApplyTheme("System");
+        #region Window Blur Class
+        internal static class WindowBlur
+        {
+            [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+            [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
+            internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
+            internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
+            [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
+            public static void EnableBlur(Window window, bool enable)
+            {
+                var windowHelper = new WindowInteropHelper(window);
+                if (windowHelper.Handle == IntPtr.Zero) return;
+                var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
+                var accentStructSize = Marshal.SizeOf(accent);
+                var accentPtr = Marshal.AllocHGlobal(accentStructSize);
+                Marshal.StructureToPtr(accent, accentPtr, false);
+                var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
+                SetWindowCompositionAttribute(windowHelper.Handle, ref data);
+                Marshal.FreeHGlobal(accentPtr);
+            }
         }
         #endregion
-
-        private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
-
-        private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
-        private void HeaderPanel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-                DragMove();
-        }
+        #endregion
     }
-
-    #region Window Blur Class
-    internal static class WindowBlur
-    {
-        [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-        [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
-        internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
-        internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
-        [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
-        public static void EnableBlur(Window window, bool enable)
-        {
-            var windowHelper = new WindowInteropHelper(window);
-            if (windowHelper.Handle == IntPtr.Zero) return;
-
-            var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
-            var accentStructSize = Marshal.SizeOf(accent);
-            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
-            Marshal.StructureToPtr(accent, accentPtr, false);
-            var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
-            SetWindowCompositionAttribute(windowHelper.Handle, ref data);
-            Marshal.FreeHGlobal(accentPtr);
-        }
-
-    #endregion
-
-
-}
 }
