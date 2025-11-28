@@ -629,7 +629,7 @@ namespace MacKeyboardWindows
             SetWindowCompositionAttribute(windowHelper.Handle, ref data);
             Marshal.FreeHGlobal(accentPtr);
         }
-    }
+
     #endregion
 
     private void HeaderPanel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
