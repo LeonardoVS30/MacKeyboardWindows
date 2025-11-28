@@ -420,8 +420,8 @@ namespace MacKeyboardWindows
                 var animX = new DoubleAnimation(f, duration) { EasingFunction = ease };
                 var animY = new DoubleAnimation(f, duration) { EasingFunction = ease };
 
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
+                MainScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
+                MainScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
             }
         }
 
