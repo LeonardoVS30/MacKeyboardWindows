@@ -36,4 +36,7 @@
          Blanco brillante casi sólido. -->
     <SolidColorBrush x:Key="KeyBackgroundPressedColor" Color="#60FFFFFF"/>
 
+    <SolidColorBrush x:Key="MenuBackgroundColor" Color="#CC494949"/>
+
+
 </ResourceDictionary>

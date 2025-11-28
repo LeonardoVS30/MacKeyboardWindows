@@ -8,4 +8,6 @@
 	<SolidColorBrush x:Key="KeyForegroundColor" Color="#333333"/>
 	<SolidColorBrush x:Key="WindowBorderColor" Color="#EAEAEA"/>
 	<SolidColorBrush x:Key="TitleBarButtonHoverColor" Color="#E5E5E5"/>
+    <SolidColorBrush x:Key="MenuBackgroundColor" Color="#FFF0F0F0"/>
+
 </ResourceDictionary>
