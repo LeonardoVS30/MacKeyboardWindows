@@ -31,35 +31,6 @@
                                 <RotateTransform Angle="0"/>
                             </TransformGroup>
                         </Rectangle.RenderTransform>
-                    </Rectangle>
-                </Grid>
-            </Border>
-        </ControlTemplate>
-    </Window.Resources>
-
-    <Border Name="MainBorder" Width="1100" MinHeight="350" Background="{DynamicResource WindowBackgroundColor}" CornerRadius="12" BorderBrush="{DynamicResource WindowBorderColor}" BorderThickness="1" RenderTransformOrigin="0.5,0.5">
-        <Border.RenderTransform>
-            <TransformGroup>
-                <ScaleTransform x:Name="MainBorderScale" ScaleX="1.0" ScaleY="1.0"/>
-                <TranslateTransform x:Name="MainBorderTranslate" Y="0"/>
-            </TransformGroup>
-        </Border.RenderTransform>
-        <Border.LayoutTransform>
-            <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
-        </Border.LayoutTransform>
-
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <!-- Barra de título -->
-                <RowDefinition Height="*"/>
-                <!-- Teclado -->
-            </Grid.RowDefinitions>
-
-            <!-- Fila 0: Barra de título Estilizada -->
-            <Grid Grid.Row="0" Margin="10,8,10,5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <!-- Menú -->
                     <ColumnDefinition Width="*"/>
                     <!-- Espacio vacío (para arrastrar) -->
