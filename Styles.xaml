@@ -154,7 +154,7 @@
                             <EventTrigger RoutedEvent="Loaded">
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <!-- 1. Opacidad: Entra suavemente -->
+                                        <!-- 1. Opacidad: Siempre empieza invisible -->
                                         <DoubleAnimation Storyboard.TargetProperty="Opacity" 
                                                          From="0" To="1" Duration="0:0:0.25">
                                             <DoubleAnimation.EasingFunction>
@@ -162,23 +162,23 @@
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
 
-                                        <!-- 2. Escala: Efecto de rebote muy sutil (BackEase) -->
+                                        <!-- 2. Escala: Siempre empieza pequeño (0.8) -->
                                         <DoubleAnimation Storyboard.TargetName="MenuScale" Storyboard.TargetProperty="ScaleX" 
-                                                         To="1" Duration="0:0:0.35">
+                                                         From="0.8" To="1" Duration="0:0:0.35">
                                             <DoubleAnimation.EasingFunction>
                                                 <BackEase EasingMode="EaseOut" Amplitude="0.4"/>
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="MenuScale" Storyboard.TargetProperty="ScaleY" 
-                                                         To="1" Duration="0:0:0.35">
+                                                         From="0.8" To="1" Duration="0:0:0.35">
                                             <DoubleAnimation.EasingFunction>
                                                 <BackEase EasingMode="EaseOut" Amplitude="0.4"/>
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
 
-                                        <!-- 3. Traslación: Cae a su posición -->
+                                        <!-- 3. Traslación: Siempre empieza arriba (-15) -->
                                         <DoubleAnimation Storyboard.TargetName="MenuTranslate" Storyboard.TargetProperty="Y" 
-                                                         To="0" Duration="0:0:0.35">
+                                                         From="-15" To="0" Duration="0:0:0.35">
                                             <DoubleAnimation.EasingFunction>
                                                 <CircleEase EasingMode="EaseOut"/>
                                             </DoubleAnimation.EasingFunction>
@@ -283,24 +283,30 @@
                                         <BeginStoryboard>
                                             <Storyboard>
                                                 <!-- Opacidad -->
-                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.2">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                 From="0" To="1" Duration="0:0:0.2">
                                                     <DoubleAnimation.EasingFunction>
                                                         <QuinticEase EasingMode="EaseOut"/>
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <!-- Escala (Rebote) -->
-                                                <DoubleAnimation Storyboard.TargetName="SubMenuScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.3">
+
+                                                <!-- Escala (Desde 0.9) -->
+                                                <DoubleAnimation Storyboard.TargetName="SubMenuScale" Storyboard.TargetProperty="ScaleX" 
+                                                                 From="0.9" To="1" Duration="0:0:0.3">
                                                     <DoubleAnimation.EasingFunction>
                                                         <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetName="SubMenuScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.3">
+                                                <DoubleAnimation Storyboard.TargetName="SubMenuScale" Storyboard.TargetProperty="ScaleY" 
+                                                                 From="0.9" To="1" Duration="0:0:0.3">
                                                     <DoubleAnimation.EasingFunction>
                                                         <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <!-- Traslación -->
-                                                <DoubleAnimation Storyboard.TargetName="SubMenuTranslate" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.3">
+
+                                                <!-- Traslación (Desde la izquierda -10) -->
+                                                <DoubleAnimation Storyboard.TargetName="SubMenuTranslate" Storyboard.TargetProperty="X" 
+                                                                 From="-10" To="0" Duration="0:0:0.3">
                                                     <DoubleAnimation.EasingFunction>
                                                         <QuinticEase EasingMode="EaseOut"/>
                                                     </DoubleAnimation.EasingFunction>
