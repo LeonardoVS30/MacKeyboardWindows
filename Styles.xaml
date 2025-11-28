@@ -110,37 +110,91 @@
         <Setter Property="Padding" Value="0"/>
         <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
     </Style>
-
-    <!-- Estilo "Aesthetic" para el Menú Desplegable -->
+    <!-- Estilo "Aesthetic" para el Menú Desplegable con Animación Tahoe -->
+    <!-- Estilo "Aesthetic Tahoe" para el Menú Desplegable -->
     <Style x:Key="AppContextMenuStyle" TargetType="ContextMenu">
-        <Setter Property="Background" Value="{DynamicResource KeyBackgroundColor}"/>
+        <!-- AQUI EL CAMBIO DE COLOR: Usamos MenuBackgroundColor -->
+        <Setter Property="Background" Value="{DynamicResource MenuBackgroundColor}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource KeyBorderColor}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
-        <Setter Property="Padding" Value="5"/>
+        <Setter Property="Padding" Value="6"/>
         <Setter Property="HasDropShadow" Value="True"/>
-        <Setter Property="HorizontalOffset" Value="-5"/>
+        <!-- Ajuste de posición para que nazca desde el botón -->
+        <Setter Property="HorizontalOffset" Value="-10"/>
         <Setter Property="VerticalOffset" Value="5"/>
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="{TemplateBinding Background}"
+                    <Border x:Name="MenuBorder"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8" 
+                            BorderThickness="1"
+                            CornerRadius="10" 
                             Padding="{TemplateBinding Padding}"
-                            SnapsToDevicePixels="True">
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0,0">
+                        <!-- Origen arriba a la izquierda -->
+
+                        <!-- Sombra difusa y elegante -->
                         <Border.Effect>
-                            <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            <DropShadowEffect BlurRadius="25" ShadowDepth="8" Opacity="0.4" Color="Black" Direction="270"/>
                         </Border.Effect>
+
+                        <Border.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="MenuScale" ScaleX="0.8" ScaleY="0.8"/>
+                                <TranslateTransform x:Name="MenuTranslate" Y="-15"/>
+                            </TransformGroup>
+                        </Border.RenderTransform>
+
+                        <!-- ANIMACIÓN TAHOE (SMOOTH POP) -->
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <!-- 1. Opacidad: Siempre empieza invisible -->
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                         From="0" To="1" Duration="0:0:0.25">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+
+                                        <!-- 2. Escala: Siempre empieza pequeño (0.8) -->
+                                        <DoubleAnimation Storyboard.TargetName="MenuScale" Storyboard.TargetProperty="ScaleX" 
+                                                         From="0.8" To="1" Duration="0:0:0.35">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase EasingMode="EaseOut" Amplitude="0.4"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="MenuScale" Storyboard.TargetProperty="ScaleY" 
+                                                         From="0.8" To="1" Duration="0:0:0.35">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase EasingMode="EaseOut" Amplitude="0.4"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+
+                                        <!-- 3. Traslación: Siempre empieza arriba (-15) -->
+                                        <DoubleAnimation Storyboard.TargetName="MenuTranslate" Storyboard.TargetProperty="Y" 
+                                                         From="-15" To="0" Duration="0:0:0.35">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CircleEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+
                         <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
-
-    <!-- Estilo de MenuItem con Checkbox Aesthetic -->
+    <!-- Estilo de MenuItem con Checkbox Aesthetic y Submenús Animados -->
     <Style TargetType="{x:Type MenuItem}">
         <Setter Property="Padding" Value="10,8"/>
         <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
@@ -148,6 +202,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type MenuItem}">
                     <Grid>
+                        <!-- Elemento del menú principal -->
                         <Border x:Name="Border"
                                 Background="Transparent"
                                 Padding="{TemplateBinding Padding}"
@@ -159,6 +214,7 @@
                                     <ColumnDefinition Width="Auto" SharedSizeGroup="HasSubMenu"/>
                                 </Grid.ColumnDefinitions>
 
+                                <!-- Icono Check (Palomita) -->
                                 <Path x:Name="CheckIcon" 
                                       Grid.Column="0"
                                       Data="{StaticResource IconCheck}"
@@ -173,11 +229,13 @@
                                     </Path.Effect>
                                 </Path>
 
+                                <!-- Texto -->
                                 <ContentPresenter Grid.Column="1"
                                                   ContentSource="Header"
                                                   RecognizesAccessKey="True"
                                                   VerticalAlignment="Center"/>
 
+                                <!-- Flecha de submenú -->
                                 <Path x:Name="Arrow" Grid.Column="2"
                                       VerticalAlignment="Center"
                                       Margin="8,0,0,0"
@@ -187,22 +245,77 @@
                             </Grid>
                         </Border>
 
+                        <!-- POPUP DEL SUBMENÚ (Aquí aplicamos los cambios) -->
                         <Popup x:Name="SubMenuPopup"
                                Placement="Right"
                                IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
                                Focusable="false"
                                AllowsTransparency="true"
-                               PopupAnimation="Fade">
+                               PopupAnimation="None">
+                            <!-- Desactivamos la animación default para usar la nuestra -->
+
                             <Border Name="SubmenuBorder"
-                                    Background="{DynamicResource KeyBackgroundColor}"
+                                    Background="{DynamicResource MenuBackgroundColor}" 
                                     BorderBrush="{DynamicResource KeyBorderColor}"
                                     BorderThickness="1"
-                                    CornerRadius="8"
+                                    CornerRadius="10"
                                     Padding="2"
-                                    SnapsToDevicePixels="True">
+                                    SnapsToDevicePixels="True"
+                                    RenderTransformOrigin="0,0">
+                                <!-- Origen arriba a la izquierda -->
+
+                                <!-- Sombra Aesthetic -->
                                 <Border.Effect>
-                                    <DropShadowEffect BlurRadius="15" ShadowDepth="5" Opacity="0.4" Color="Black"/>
+                                    <DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.3" Color="Black"/>
                                 </Border.Effect>
+
+                                <!-- Preparación para animación -->
+                                <Border.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="SubMenuScale" ScaleX="0.9" ScaleY="0.9"/>
+                                        <TranslateTransform x:Name="SubMenuTranslate" X="-10"/>
+                                    </TransformGroup>
+                                </Border.RenderTransform>
+
+                                <!-- ANIMACIÓN TAHOE PARA SUBMENÚ -->
+                                <Border.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <!-- Opacidad -->
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                 From="0" To="1" Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuinticEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+
+                                                <!-- Escala (Desde 0.9) -->
+                                                <DoubleAnimation Storyboard.TargetName="SubMenuScale" Storyboard.TargetProperty="ScaleX" 
+                                                                 From="0.9" To="1" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetName="SubMenuScale" Storyboard.TargetProperty="ScaleY" 
+                                                                 From="0.9" To="1" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+
+                                                <!-- Traslación (Desde la izquierda -10) -->
+                                                <DoubleAnimation Storyboard.TargetName="SubMenuTranslate" Storyboard.TargetProperty="X" 
+                                                                 From="-10" To="0" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuinticEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Border.Triggers>
+
                                 <ScrollViewer CanContentScroll="True" Style="{StaticResource MenuScrollViewerStyle}">
                                     <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
                                 </ScrollViewer>
