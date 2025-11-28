@@ -1,16 +1,4 @@
-﻿<Window x:Class="MacKeyboardWindows.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Mac Keyboard for Windows"
-        SizeToContent="WidthAndHeight"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        Topmost="True" Loaded="MainWindow_Loaded" MouseLeftButtonDown="Window_MouseLeftButtonDown">
-
-    <Window.Resources>
-        <!-- ANIMACIÓN DEL MENÚ HAMBURGUESA -->
-        <!-- Convierte las 3 líneas en una X cuando está marcado -->
-        <ControlTemplate x:Key="HamburgerMenuTemplate" TargetType="ToggleButton">
-            <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
+﻿            <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
                 <Grid Width="16" Height="14" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <!-- Línea Superior -->
                     <Rectangle x:Name="TopLine" Height="2" Width="16" VerticalAlignment="Top" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
