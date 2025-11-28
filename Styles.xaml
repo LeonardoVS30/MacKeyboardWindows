@@ -11,7 +11,7 @@
     <Geometry x:Key="IconWindowClose">M0,0 L10,10 M0,10 L10,0</Geometry>
 
     <!-- GLOBAL EASING FUNCTION (Tahoe 26 Style) -->
-    <QuinticEase x:Key="TahoeEase" EasingMode="EaseOut"/>
+
 
     <!-- ESTILOS PARA BOTONES DE ICONOS -->
     <Style x:Key="IconButtonStyle" TargetType="Border">
@@ -290,5 +290,8 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
+
+    <!-- GLOBAL EASING FUNCTION (Tahoe 26 Style) -->
+    <QuinticEase x:Key="TahoeEase" EasingMode="EaseOut"/>
 
 </ResourceDictionary>
