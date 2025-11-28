@@ -394,83 +394,7 @@ namespace MacKeyboardWindows
                 {
                     if (toggleButton.ContextMenu != null)
                     {
-                var keyRowModel = layout[rowIndex];
-                var rowGrid = new Grid();
-                foreach (var keyModel in keyRowModel)
-                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(keyModel.WidthFactor, GridUnitType.Star) });
 
-                for (int colIndex = 0; colIndex < keyRowModel.Count; colIndex++)
-                {
-                    var keyModel = keyRowModel[colIndex];
-                    UIElement contentElement;
-
-                    // --- LÓGICA DE ICONOS ---
-                    if (keyModel.DisplayText.StartsWith("ICON_"))
-                    {
-                        // Es un icono: Crear un Path vectorial
-                        var path = new System.Windows.Shapes.Path
-                        {
-                            Style = (Style)FindResource("IconPathStyle"),
-                            Stretch = Stretch.Uniform,
-                            Height = 14, // Ajusta el tamaño del icono aquí
-                            Width = 14
-                        };
-
-                        // Elegir el dibujo según el nombre
-                        string resourceKey = keyModel.DisplayText switch
-                        {
-                            "ICON_DELETE" => "IconDelete",
-                            "ICON_MENU" => "IconMenu", // Icono de hamburguesa
-                            "ICON_WINDOWS" => "IconWindows",
-                            _ => ""
-                        };
-
-                        if (!string.IsNullOrEmpty(resourceKey))
-                        {
-                            path.Data = (Geometry)FindResource(resourceKey);
-                        }
-                        contentElement = path;
-                    }
-                    else
-                    {
-                        // Es texto normal
-                        var textBlock = new TextBlock { Style = (Style)FindResource(keyModel.DisplayText.Length > 2 ? "SmallKeyTextStyle" : "KeyTextStyle") };
-                        if (keyModel.DisplayText.Contains("\n"))
-                        {
-                            var parts = keyModel.DisplayText.Split('\n');
-                            textBlock.Inlines.Add(parts[0]);
-                            textBlock.Inlines.Add(new System.Windows.Documents.LineBreak());
-                            textBlock.Inlines.Add(parts[1]);
-                            textBlock.TextAlignment = TextAlignment.Center;
-                        }
-                        else
-                        {
-                            textBlock.Text = keyModel.DisplayText;
-                        }
-
-                        // Guardar referencias para actualizar texto (Caps/Shift)
-                        if (keyModel.IsLetter) _letterKeys.Add(Tuple.Create(textBlock, keyModel));
-                        else if (!string.IsNullOrEmpty(keyModel.ShiftDisplayText)) _symbolKeys.Add(Tuple.Create(textBlock, keyModel));
-
-                        contentElement = textBlock;
-                    }
-                    // -------------------------
-
-                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel };
-                    border.MouseLeftButtonDown += Key_MouseLeftButtonDown;
-                    Grid.SetColumn(border, colIndex);
-                    rowGrid.Children.Add(border);
-
-                    if (!_wpfKeyToBorderMap.ContainsKey(keyModel.WpfKey)) _wpfKeyToBorderMap.Add(keyModel.WpfKey, border);
-
-                    if (keyModel.WpfKey == Key.Capital) _capsLockBorder = border;
-                    if (keyModel.WpfKey == Key.LeftShift) _leftShiftBorder = border;
-                    if (keyModel.WpfKey == Key.RightShift) _rightShiftBorder = border;
-                }
-                Grid.SetRow(rowGrid, rowIndex);
-                KeyboardContainer.Children.Add(rowGrid);
-            }
-        }
         #endregion
 
         #region Keyboard State Management
@@ -556,8 +480,37 @@ namespace MacKeyboardWindows
 
             if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
             {
-                if (isPressed) border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
-                else border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                if (isPressed)
+                {
+                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                    // Animación de escala física
+                    if (border.RenderTransform is ScaleTransform st)
+                    {
+                        if (st.IsFrozen)
+                        {
+                            st = st.Clone();
+                            border.RenderTransform = st;
+                        }
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
+                    }
+                }
+                else
+                {
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                    // Restaurar escala física
+                    if (border.RenderTransform is ScaleTransform st)
+                    {
+                        if (st.IsFrozen)
+                        {
+                            st = st.Clone();
+                            border.RenderTransform = st;
+                        }
+                        var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
+                    }
+                }
             }
         }
 
@@ -740,11 +693,7 @@ namespace MacKeyboardWindows
 
         // --- Botones de la ventana ---
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ButtonState == MouseButtonState.Pressed)
-                DragMove();
-        }
+
 
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
