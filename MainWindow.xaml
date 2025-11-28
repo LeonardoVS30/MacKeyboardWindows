@@ -40,6 +40,20 @@
     <Border BorderThickness="1" CornerRadius="10" Margin="10" 
             x:Name="MainBorder" Background="{DynamicResource MainBackgroundColor}" 
             BorderBrush="{DynamicResource BorderColor}" RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TransformGroup>
+                <ScaleTransform x:Name="MainBorderScale" ScaleX="1.0" ScaleY="1.0"/>
+                <TranslateTransform x:Name="MainBorderTranslate" Y="0"/>
+            </TransformGroup>
+        </Border.RenderTransform>
+        <Border.LayoutTransform>
+            <ScaleTransform x:Name="MainScaleTransform" ScaleX="1.0" ScaleY="1.0" />
+        </Border.LayoutTransform>
+
+        <Grid x:Name="LayoutRoot">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Barra de título -->
                 <RowDefinition Height="Auto"/>
                 <!-- Teclado -->
             </Grid.RowDefinitions>
