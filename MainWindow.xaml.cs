@@ -71,21 +71,10 @@ namespace MacKeyboardWindows
                 MainBorder.Opacity = 1.0;
 
                 // 2. Eliminar animaciones de Transformación
-                if (MainBorder.RenderTransform is TransformGroup tg)
-                {
-                    if (tg.Children[0] is ScaleTransform st)
-                    {
-                        st.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-                        st.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                        st.ScaleX = 1.0;
-                        st.ScaleY = 1.0;
-                    }
-                    if (tg.Children[1] is TranslateTransform tt)
-                    {
-                        tt.BeginAnimation(TranslateTransform.YProperty, null);
-                        tt.Y = 0;
-                    }
-                }
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                WindowScaleTransform.ScaleX = 1.0;
+                WindowScaleTransform.ScaleY = 1.0;
             }
         }
 
@@ -420,8 +409,8 @@ namespace MacKeyboardWindows
                 var animX = new DoubleAnimation(f, duration) { EasingFunction = ease };
                 var animY = new DoubleAnimation(f, duration) { EasingFunction = ease };
 
-                MainScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
-                MainScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
             }
         }
 
@@ -546,26 +535,21 @@ namespace MacKeyboardWindows
 
             var scaleX = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
             var scaleY = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
-            var translateY = new DoubleAnimation(200, duration) { EasingFunction = ease }; // Mover hacia abajo
             var fade = new DoubleAnimation(0, duration) { EasingFunction = ease };
 
             var sb = new Storyboard();
 
-            Storyboard.SetTargetName(scaleX, "MainBorderScale");
-           Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
+            Storyboard.SetTargetName(scaleX, "WindowScaleTransform");
+            Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
 
-            Storyboard.SetTargetName(scaleY, "MainBorderScale");
+            Storyboard.SetTargetName(scaleY, "WindowScaleTransform");
             Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
-
-            Storyboard.SetTargetName(translateY, "MainBorderTranslate");
-            Storyboard.SetTargetProperty(translateY, new PropertyPath(TranslateTransform.YProperty));
 
             Storyboard.SetTarget(fade, MainBorder);
             Storyboard.SetTargetProperty(fade, new PropertyPath(Border.OpacityProperty));
 
             sb.Children.Add(scaleX);
             sb.Children.Add(scaleY);
-            sb.Children.Add(translateY);
             sb.Children.Add(fade);
 
             sb.Completed += (s, args) =>
@@ -576,11 +560,8 @@ namespace MacKeyboardWindows
                 sb.Stop(this);
 
                 // Resetear estado inmediatamente (aunque no se vea)
-                if (MainBorder.RenderTransform is TransformGroup tg)
-                {
-                    if (tg.Children[0] is ScaleTransform st) { st.ScaleX = 1.0; st.ScaleY = 1.0; }
-                    if (tg.Children[1] is TranslateTransform tt) { tt.Y = 0; }
-                }
+                WindowScaleTransform.ScaleX = 1.0;
+                WindowScaleTransform.ScaleY = 1.0;
                 MainBorder.Opacity = 1.0;
             };
 
@@ -592,7 +573,7 @@ namespace MacKeyboardWindows
         // --- Lógica para hacer la ventana "No Activable" (No roba foco) ---
         protected override void OnSourceInitialized(EventArgs e)
         {
-            base.OnSourceInitialized(e);
+            base.OnSourceInitialized(e);    
             var helper = new WindowInteropHelper(this);
             var hwnd = helper.Handle;
             var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);

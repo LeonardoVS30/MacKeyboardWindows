@@ -1,12 +1,24 @@
-﻿            <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
+﻿<Window x:Class="MacKeyboardWindows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mac Keyboard for Windows"
+        SizeToContent="WidthAndHeight"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        Loaded="MainWindow_Loaded"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <!-- ANIMACIÓN DEL MENÚ HAMBURGUESA -->
+        <ControlTemplate x:Key="HamburgerMenuTemplate" TargetType="ToggleButton">
+            <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
                 <Grid Width="16" Height="14" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <!-- Línea Superior -->
                     <Rectangle x:Name="TopLine" Height="2" Width="16" VerticalAlignment="Top" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
-                            <TransformGroup>
-                                <TranslateTransform Y="0"/>
-                                <RotateTransform Angle="0"/>
-                            </TransformGroup>
+                            <RotateTransform Angle="0"/>
                         </Rectangle.RenderTransform>
                     </Rectangle>
                     <!-- Línea Central -->
@@ -14,52 +26,66 @@
                     <!-- Línea Inferior -->
                     <Rectangle x:Name="BottomLine" Height="2" Width="16" VerticalAlignment="Bottom" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
-                            <TransformGroup>
-                                <TranslateTransform Y="0"/>
-                                <RotateTransform Angle="0"/>
-                            </TransformGroup>
+                            <RotateTransform Angle="0"/>
                         </Rectangle.RenderTransform>
                     </Rectangle>
                 </Grid>
             </Border>
+            <ControlTemplate.Triggers>
+                <!-- Animación al abrir (Checked): Transforma en X -->
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="TopLine" Property="RenderTransform">
+                        <Setter.Value>
+                            <TransformGroup>
+                                <TranslateTransform Y="6"/>
+                                <RotateTransform Angle="45"/>
+                            </TransformGroup>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter TargetName="MiddleLine" Property="Opacity" Value="0"/>
+                    <Setter TargetName="BottomLine" Property="RenderTransform">
+                        <Setter.Value>
+                            <TransformGroup>
+                                <TranslateTransform Y="-6"/>
+                                <RotateTransform Angle="-45"/>
+                            </TransformGroup>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Opacity" Value="0.8"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
         </ControlTemplate>
     </Window.Resources>
 
-    <!-- Main Border with Transforms -->
-    <Border BorderThickness="1" CornerRadius="10" Margin="10" 
-            x:Name="MainBorder" Background="{DynamicResource MainBackgroundColor}" 
-            BorderBrush="{DynamicResource BorderColor}" RenderTransformOrigin="0.5,0.5">
-        <Border.RenderTransform>
-            <TransformGroup>
-                <ScaleTransform x:Name="MainBorderScale" ScaleX="1.0" ScaleY="1.0"/>
-                <TranslateTransform x:Name="MainBorderTranslate" Y="0"/>
-            </TransformGroup>
-        </Border.RenderTransform>
+    <Border Name="MainBorder" Width="1100" MinHeight="350" 
+            Background="{DynamicResource WindowBackgroundColor}" 
+            CornerRadius="12" 
+            BorderBrush="{DynamicResource WindowBorderColor}" 
+            BorderThickness="1">
+        
+        <!-- Transformación para el Zoom -->
         <Border.LayoutTransform>
-            <ScaleTransform x:Name="MainScaleTransform" ScaleX="1.0" ScaleY="1.0" />
+            <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
         </Border.LayoutTransform>
 
-        <Grid x:Name="LayoutRoot">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <!-- Barra de título -->
-                <RowDefinition Height="Auto"/>
-                <!-- Teclado -->
+                <RowDefinition Height="Auto"/> <!-- Barra de título -->
+                <RowDefinition Height="*"/>    <!-- Teclado -->
             </Grid.RowDefinitions>
 
-            <!-- FILA DE CABECERA (TÍTULO Y BOTONES) -->
-            <Grid Grid.Row="0" x:Name="HeaderPanel" Height="32" Background="{DynamicResource HeaderBackgroundColor}"
-                  MouseLeftButtonDown="HeaderPanel_MouseLeftButtonDown">
+            <!-- Fila 0: Barra de título Estilizada -->
+            <Grid Grid.Row="0" Margin="10,8,10,5">
                 <Grid.ColumnDefinitions>
-                    <!-- Menú -->
-                    <ColumnDefinition Width="Auto"/>
-                    <!-- Espacio vacío (para arrastrar) -->
-                    <ColumnDefinition Width="*"/>
-                    <!-- Botones acción derecha -->
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/> <!-- Menú -->
+                    <ColumnDefinition Width="*"/>    <!-- Espacio vacío -->
+                    <ColumnDefinition Width="Auto"/> <!-- Botones acción derecha -->
                 </Grid.ColumnDefinitions>
 
-                <!-- BOTÓN DE MENÚ HAMBURGUESA ANIMADO -->
+                <!-- BOTÓN DE MENÚ (Hamburguesa Animada) -->
                 <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" 
                               Template="{StaticResource HamburgerMenuTemplate}"
                               Click="MenuToggleButton_Click">
@@ -93,16 +119,18 @@
                                 <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
                                 <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
                             </MenuItem>
+                            <!-- Opción de Sonido con Checkbox -->
                             <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
+                            
                             <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                             <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
                         </ContextMenu>
                     </ToggleButton.ContextMenu>
                 </ToggleButton>
 
-                <!-- Botones a la derecha -->
+                <!-- Botones a la derecha (Estilo Neumórfico/Apple Monocromo) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-
+                    
                     <!-- Botón Minimizar -->
                     <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
                             ToolTip="Minimizar" 
@@ -120,32 +148,12 @@
                               Style="{StaticResource NeumorphicHeaderIconStyle}"
                               Width="8" Height="8"/>
                     </Border>
-
+                    
                 </StackPanel>
             </Grid>
 
-            <!-- CONTENEDOR DINÁMICO PARA EL TECLADO -->
+            <!-- CONTENEDOR DINÁMICO PARA EL TECLADO (Se llena desde C#) -->
             <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
-
-            <!-- TRANSITION OVERLAY -->
-            <Grid x:Name="TransitionOverlay" Grid.RowSpan="2" Visibility="Collapsed" IsHitTestVisible="False">
-                <Image x:Name="TransitionImage" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                <Border x:Name="TransitionGlassWave" HorizontalAlignment="Left" Width="60" Opacity="0.8" VerticalAlignment="Stretch">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#00FFFFFF" Offset="0"/>
-                            <GradientStop Color="#60FFFFFF" Offset="0.5"/>
-                            <GradientStop Color="#00FFFFFF" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    <Border.Effect>
-                        <BlurEffect Radius="20"/>
-                    </Border.Effect>
-                    <Border.RenderTransform>
-                        <TranslateTransform x:Name="GlassWaveTranslate" X="-100"/>
-                    </Border.RenderTransform>
-                </Border>
-            </Grid>
 
         </Grid>
     </Border>
