@@ -31,6 +31,20 @@
                                 <RotateTransform Angle="0"/>
                             </TransformGroup>
                         </Rectangle.RenderTransform>
+                    </Rectangle>
+                </Grid>
+            </Border>
+        </ControlTemplate>
+    </Window.Resources>
+
+    <Border BorderThickness="1" CornerRadius="10" Margin="10" 
+            x:Name="MainBorder" Background="{DynamicResource MainBackgroundColor}" 
+            BorderBrush="{DynamicResource BorderColor}">
+        <Grid x:Name="LayoutRoot">
+            <!-- FILA DE CABECERA (TÍTULO Y BOTONES) -->
+            <Grid x:Name="HeaderPanel" Height="32" Background="{DynamicResource HeaderBackgroundColor}"
+                  MouseLeftButtonDown="HeaderPanel_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
                     <!-- Menú -->
                     <ColumnDefinition Width="*"/>
                     <!-- Espacio vacío (para arrastrar) -->
@@ -88,7 +102,7 @@
                     <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
                             ToolTip="Minimizar" 
                             MouseLeftButtonDown="MinimizeButton_Click">
-                        <Path Data="{StaticResource IconWindowMinimize}" 
+                        <Path Data="{StaticResource IconWindowMinimizar}" 
                               Style="{StaticResource NeumorphicHeaderIconStyle}"
                               Width="8" Height="2"/>
                         <!-- Ajuste fino del tamaño del icono -->
