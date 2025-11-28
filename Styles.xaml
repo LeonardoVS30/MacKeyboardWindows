@@ -7,18 +7,6 @@
     <Geometry x:Key="IconWindows">M0,0H10V10H0M12,0H22V10H12M0,12H10V22H0M12,12H22V22H12</Geometry>
     <Geometry x:Key="IconHome">M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z</Geometry>
     <Geometry x:Key="IconCheck">M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z</Geometry>
-    <Geometry x:Key="IconWindowMinimize">M0,5 H10</Geometry>
-    <Geometry x:Key="IconWindowClose">M0,0 L10,10 M0,10 L10,0</Geometry>
-
-    <!-- GLOBAL EASING FUNCTION (Tahoe 26 Style) -->
-
-
-    <!-- ESTILOS PARA BOTONES DE ICONOS -->
-    <Style x:Key="IconButtonStyle" TargetType="Border">
-        <Setter Property="Width" Value="30"/>
-        <Setter Property="Height" Value="30"/>
-        <Setter Property="CornerRadius" Value="15"/>
-        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Margin" Value="2"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -286,12 +274,207 @@
         <Setter Property="Opacity" Value="0.5"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
-                <Setter Property="Opacity" Value="1.0"/>
-            </DataTrigger>
+        <Setter Property="Margin" Value="4,0,0,0"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource KeyForegroundColor}" />
+                <Setter Property="Opacity" Value="0.1" />
+            </Trigger>
         </Style.Triggers>
     </Style>
 
     <!-- GLOBAL EASING FUNCTION (Tahoe 26 Style) -->
     <QuinticEase x:Key="TahoeEase" EasingMode="EaseOut"/>
+
+    <!-- ESTILO AÑADIDO para el ScrollViewer del menú -->
+    <Style x:Key="MenuScrollViewerStyle" TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
+    </Style>
+
+    <!-- Estilo "Aesthetic" para el Menú Desplegable -->
+    <Style x:Key="AppContextMenuStyle" TargetType="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource KeyBackgroundColor}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource KeyBorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="HasDropShadow" Value="True"/>
+        <Setter Property="HorizontalOffset" Value="-5"/>
+        <Setter Property="VerticalOffset" Value="5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8" 
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                        </Border.Effect>
+                        <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Estilo de MenuItem con Checkbox Aesthetic -->
+    <Style TargetType="{x:Type MenuItem}">
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="Foreground" Value="{DynamicResource KeyForegroundColor}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type MenuItem}">
+                    <Grid>
+                        <Border x:Name="Border"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="25"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="HasSubMenu"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Path x:Name="CheckIcon" 
+                                      Grid.Column="0"
+                                      Data="{StaticResource IconCheck}"
+                                      Fill="{DynamicResource KeyForegroundColor}"
+                                      Stretch="Uniform"
+                                      Width="12" Height="12"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Center"
+                                      Opacity="0">
+                                    <Path.Effect>
+                                        <DropShadowEffect Color="White" BlurRadius="8" ShadowDepth="0" Opacity="0.8"/>
+                                    </Path.Effect>
+                                </Path>
+
+                                <ContentPresenter Grid.Column="1"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center"/>
+
+                                <Path x:Name="Arrow" Grid.Column="2"
+                                      VerticalAlignment="Center"
+                                      Margin="8,0,0,0"
+                                      Data="M 0 0 L 4 4 L 0 8 Z"
+                                      Fill="{DynamicResource KeyForegroundColor}"
+                                      Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+
+                        <Popup x:Name="SubMenuPopup"
+                               Placement="Right"
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               Focusable="false"
+                               AllowsTransparency="true"
+                               PopupAnimation="Fade">
+                            <Border Name="SubmenuBorder"
+                                    Background="{DynamicResource KeyBackgroundColor}"
+                                    BorderBrush="{DynamicResource KeyBorderColor}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="2"
+                                    SnapsToDevicePixels="True">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="15" ShadowDepth="5" Opacity="0.4" Color="Black"/>
+                                </Border.Effect>
+                                <ScrollViewer CanContentScroll="True" Style="{StaticResource MenuScrollViewerStyle}">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource KeyBackgroundPressedColor}"/>
+                        </Trigger>
+                        <Trigger Property="HasItems" Value="True">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="CheckIcon" Property="Opacity" Value="1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AppMenuSeparatorStyle" TargetType="Separator">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource KeyBorderColor}"/>
+        <Setter Property="Margin" Value="4,6,4,6"/>
+    </Style>
+
+    <!-- ESTILO NEUMÓRFICO / APPLE MONOCROMO -->
+    <Style x:Key="NeumorphicHeaderButtonStyle" TargetType="Border">
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Background" Value="#15FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Margin" Value="6,0,0,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="4" ShadowDepth="2" Direction="270" Color="Black" Opacity="0.4"/>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#40FFFFFF"/>
+                <Setter Property="BorderBrush" Value="#80FFFFFF"/>
+            </Trigger>
+            <EventTrigger RoutedEvent="MouseEnter">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.2" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.2" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="MouseLeave">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NeumorphicHeaderIconStyle" TargetType="Path">
+        <Setter Property="Stroke" Value="{DynamicResource KeyForegroundColor}"/>
+        <Setter Property="StrokeThickness" Value="1.5"/>
+        <Setter Property="Stretch" Value="None"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="Opacity" Value="0.5"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                <Setter Property="Opacity" Value="1.0"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 
 </ResourceDictionary>
