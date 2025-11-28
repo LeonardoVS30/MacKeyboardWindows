@@ -9,7 +9,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Shapes; // Necesario para Rectangle
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using MacKeyboardWindows.Models;
 using MacKeyboardWindows.Services;
@@ -23,6 +23,7 @@ namespace MacKeyboardWindows
         [DllImport("user32.dll")] public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
         [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
         [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
+
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
         private const int VK_CAPITAL = 0x14;
@@ -34,9 +35,12 @@ namespace MacKeyboardWindows
         private readonly KeyboardHookService _keyboardHookService;
         private readonly SoundService _soundService;
         private readonly DispatcherTimer _keyboardStateTimer;
+
+        // Mapas y listas para la UI dinámica
         private readonly Dictionary<Key, Border> _wpfKeyToBorderMap = new Dictionary<Key, Border>();
         private readonly List<Tuple<TextBlock, KeyModel>> _letterKeys = new List<Tuple<TextBlock, KeyModel>>();
         private readonly List<Tuple<TextBlock, KeyModel>> _symbolKeys = new List<Tuple<TextBlock, KeyModel>>();
+
         private Border _capsLockBorder, _leftShiftBorder, _rightShiftBorder;
         private bool _isSimulating = false;
         private string _currentLayout = "ES";
@@ -44,13 +48,18 @@ namespace MacKeyboardWindows
 
         public MainWindow()
         {
+            // Aplicar tema inicial antes de inicializar componentes
             LoadThemeResources("System");
+
             InitializeComponent();
+
             _keyboardService = new KeyboardService();
             _keyboardHookService = new KeyboardHookService();
             _soundService = new SoundService();
+
             _keyboardStateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             _keyboardStateTimer.Tick += (s, e) => UpdateKeyboardState();
+
             Loaded += MainWindow_Loaded;
             Closed += MainWindow_Closed;
             StateChanged += MainWindow_StateChanged;
@@ -62,25 +71,54 @@ namespace MacKeyboardWindows
             StartKeyboardHook();
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
             _keyboardStateTimer.Start();
+
+            // RESTAURAR PREFERENCIAS
+            var settings = Properties.Settings.Default;
+
+            // 1. Opacidad
+            if (settings.Opacity > 0.1) MainBorder.Opacity = settings.Opacity;
+
+            // 2. Zoom
+            if (settings.Zoom > 0.1)
+            {
+                WindowScaleTransform.ScaleX = settings.Zoom;
+                WindowScaleTransform.ScaleY = settings.Zoom;
+            }
+
+            // 3. Sonido
+            _soundService.IsEnabled = settings.SoundEnabled;
+            if (SoundMenuItem != null) SoundMenuItem.IsChecked = settings.SoundEnabled;
+
+            // 4. Layout y Tema
+            if (!string.IsNullOrEmpty(settings.Layout)) _currentLayout = settings.Layout;
             LoadLayout(_currentLayout);
+
+            // Aplicar el tema guardado visualmente
+            if (!string.IsNullOrEmpty(settings.Theme)) ApplyTheme(settings.Theme);
         }
+
         private void MainWindow_Closed(object sender, EventArgs e)
         {
             StopKeyboardHook();
             SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
             _keyboardStateTimer.Stop();
         }
+
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
             if (WindowState == WindowState.Normal)
             {
                 MainBorder.BeginAnimation(Border.OpacityProperty, null);
-                MainBorder.Opacity = 1.0;
+                MainBorder.Opacity = Properties.Settings.Default.Opacity > 0.1 ? Properties.Settings.Default.Opacity : 1.0;
+
+                double zoom = Properties.Settings.Default.Zoom > 0.1 ? Properties.Settings.Default.Zoom : 1.0;
                 WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
                 WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                WindowScaleTransform.ScaleX = 1.0; WindowScaleTransform.ScaleY = 1.0;
+                WindowScaleTransform.ScaleX = zoom;
+                WindowScaleTransform.ScaleY = zoom;
             }
         }
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
@@ -92,7 +130,16 @@ namespace MacKeyboardWindows
         #endregion
 
         #region Layout & UI Construction
-        private void Layout_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string layoutName) LoadLayout(layoutName); }
+        private void Layout_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string layoutName)
+            {
+                LoadLayout(layoutName);
+                Properties.Settings.Default.Layout = layoutName;
+                Properties.Settings.Default.Save();
+            }
+        }
+
         private void LoadLayout(string name)
         {
             _currentLayout = name;
@@ -100,6 +147,7 @@ namespace MacKeyboardWindows
             BuildKeyboardUI(layout);
             UpdateKeyboardState();
         }
+
         private void BuildKeyboardUI(KeyboardLayout layout)
         {
             KeyboardContainer.Children.Clear();
@@ -109,40 +157,68 @@ namespace MacKeyboardWindows
             _symbolKeys.Clear();
             _capsLockBorder = null; _leftShiftBorder = null; _rightShiftBorder = null;
 
-            for (int i = 0; i < layout.Count; i++) KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            for (int i = 0; i < layout.Count; i++)
+                KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
             for (int rowIndex = 0; rowIndex < layout.Count; rowIndex++)
             {
                 var keyRowModel = layout[rowIndex];
                 var rowGrid = new Grid();
-                foreach (var keyModel in keyRowModel) rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(keyModel.WidthFactor, GridUnitType.Star) });
+                foreach (var keyModel in keyRowModel)
+                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(keyModel.WidthFactor, GridUnitType.Star) });
 
                 for (int colIndex = 0; colIndex < keyRowModel.Count; colIndex++)
                 {
                     var keyModel = keyRowModel[colIndex];
                     UIElement contentElement;
+
                     if (keyModel.DisplayText.StartsWith("ICON_"))
                     {
-                        var path = new System.Windows.Shapes.Path { Style = (Style)FindResource("IconPathStyle"), Stretch = Stretch.Uniform, Height = 14, Width = 14 };
-                        string resourceKey = keyModel.DisplayText switch { "ICON_DELETE" => "IconDelete", "ICON_MENU" => "IconMenu", "ICON_WINDOWS" => "IconWindows", _ => "" };
+                        var path = new System.Windows.Shapes.Path
+                        {
+                            Style = (Style)FindResource("IconPathStyle"),
+                            Stretch = Stretch.Uniform,
+                            Height = 14,
+                            Width = 14
+                        };
+                        string resourceKey = keyModel.DisplayText switch
+                        {
+                            "ICON_DELETE" => "IconDelete",
+                            "ICON_MENU" => "IconMenu",
+                            "ICON_WINDOWS" => "IconWindows",
+                            _ => ""
+                        };
                         if (!string.IsNullOrEmpty(resourceKey)) path.Data = (Geometry)FindResource(resourceKey);
                         contentElement = path;
                     }
                     else
                     {
                         var textBlock = new TextBlock { Style = (Style)FindResource(keyModel.DisplayText.Length > 2 ? "SmallKeyTextStyle" : "KeyTextStyle") };
-                        if (keyModel.DisplayText.Contains("\n")) { var parts = keyModel.DisplayText.Split('\n'); textBlock.Inlines.Add(parts[0]); textBlock.Inlines.Add(new System.Windows.Documents.LineBreak()); textBlock.Inlines.Add(parts[1]); textBlock.TextAlignment = TextAlignment.Center; }
+                        if (keyModel.DisplayText.Contains("\n"))
+                        {
+                            var parts = keyModel.DisplayText.Split('\n');
+                            textBlock.Inlines.Add(parts[0]);
+                            textBlock.Inlines.Add(new System.Windows.Documents.LineBreak());
+                            textBlock.Inlines.Add(parts[1]);
+                            textBlock.TextAlignment = TextAlignment.Center;
+                        }
                         else textBlock.Text = keyModel.DisplayText;
+
                         if (keyModel.IsLetter) _letterKeys.Add(Tuple.Create(textBlock, keyModel));
                         else if (!string.IsNullOrEmpty(keyModel.ShiftDisplayText)) _symbolKeys.Add(Tuple.Create(textBlock, keyModel));
+
                         contentElement = textBlock;
                     }
+
                     var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel };
+
                     border.RenderTransformOrigin = new Point(0.5, 0.5);
                     border.RenderTransform = new ScaleTransform(1.0, 1.0);
+
                     border.MouseLeftButtonDown += Key_MouseLeftButtonDown;
                     Grid.SetColumn(border, colIndex);
                     rowGrid.Children.Add(border);
+
                     if (!_wpfKeyToBorderMap.ContainsKey(keyModel.WpfKey)) _wpfKeyToBorderMap.Add(keyModel.WpfKey, border);
                     if (keyModel.WpfKey == Key.Capital) _capsLockBorder = border;
                     if (keyModel.WpfKey == Key.LeftShift) _leftShiftBorder = border;
@@ -154,31 +230,46 @@ namespace MacKeyboardWindows
         }
         #endregion
 
-        #region Keyboard State & Input
+        #region Keyboard State Management
         private bool IsCapsLocked() => (GetKeyState(VK_CAPITAL) & 1) != 0;
         private bool IsShiftPressed() => (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+
         private void UpdateKeyboardState()
         {
-            bool capsLockOn = IsCapsLocked(), shiftDown = IsShiftPressed(), isUppercase = capsLockOn ^ shiftDown;
-            foreach (var (textBlock, keyModel) in _letterKeys) textBlock.Text = isUppercase ? keyModel.DisplayText.ToUpper() : keyModel.DisplayText.ToLower();
-            foreach (var (textBlock, keyModel) in _symbolKeys) textBlock.Text = shiftDown ? keyModel.ShiftDisplayText : keyModel.DisplayText;
+            bool capsLockOn = IsCapsLocked();
+            bool shiftDown = IsShiftPressed();
+            bool isUppercase = capsLockOn ^ shiftDown;
+
+            foreach (var (textBlock, keyModel) in _letterKeys)
+                textBlock.Text = isUppercase ? keyModel.DisplayText.ToUpper() : keyModel.DisplayText.ToLower();
+            foreach (var (textBlock, keyModel) in _symbolKeys)
+                textBlock.Text = shiftDown ? keyModel.ShiftDisplayText : keyModel.DisplayText;
+
             if (_capsLockBorder != null) _capsLockBorder.Background = capsLockOn ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
             if (_leftShiftBorder != null) _leftShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
             if (_rightShiftBorder != null) _rightShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
         }
+        #endregion
+
+        #region Input Handlers (Mouse & Keyboard)
+
         private async void Key_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is Border border && border.Tag is KeyModel keyModel)
             {
                 e.Handled = true;
                 PlaySoundForKey(keyModel.WpfKey);
+
                 border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
                 AnimateKeyPress(border);
+
                 _isSimulating = true;
                 _keyboardService.SimulateKeyPress(keyModel.KeyCode);
                 _isSimulating = false;
+
                 await Task.Delay(50);
                 UpdateKeyboardState();
+
                 if (keyModel.WpfKey != Key.Capital && keyModel.WpfKey != Key.LeftShift && keyModel.WpfKey != Key.RightShift)
                 {
                     await Task.Delay(50);
@@ -187,31 +278,141 @@ namespace MacKeyboardWindows
                 }
             }
         }
-        private void AnimateKeyPress(Border border) { if (border.RenderTransform is ScaleTransform st) { if (st.IsFrozen) { st = st.Clone(); border.RenderTransform = st; } var anim = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)); st.BeginAnimation(ScaleTransform.ScaleXProperty, anim); st.BeginAnimation(ScaleTransform.ScaleYProperty, anim); } }
-        private void AnimateKeyRelease(Border border) { if (border.RenderTransform is ScaleTransform st) { if (st.IsFrozen) { st = st.Clone(); border.RenderTransform = st; } var anim = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } }; st.BeginAnimation(ScaleTransform.ScaleXProperty, anim); st.BeginAnimation(ScaleTransform.ScaleYProperty, anim); } }
-        private void PlaySoundForKey(Key key) { if (key == Key.Space || key == Key.Return || key == Key.Back || key == Key.LeftShift || key == Key.RightShift || key == Key.Capital || key == Key.Tab || key == Key.LeftCtrl || key == Key.RightCtrl || key == Key.LeftAlt || key == Key.RightAlt) _soundService.PlayModifier(); else _soundService.PlayClick(); }
+
+        private void AnimateKeyPress(Border border)
+        {
+            if (border.RenderTransform is ScaleTransform st)
+            {
+                if (st.IsFrozen) { st = st.Clone(); border.RenderTransform = st; }
+                var anim = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50));
+                st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
+                st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+            }
+        }
+
+        private void AnimateKeyRelease(Border border)
+        {
+            if (border.RenderTransform is ScaleTransform st)
+            {
+                if (st.IsFrozen) { st = st.Clone(); border.RenderTransform = st; }
+                var anim = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+                st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
+                st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+            }
+        }
+
+        private void PlaySoundForKey(Key key)
+        {
+            if (key == Key.Space || key == Key.Return || key == Key.Back || key == Key.LeftShift || key == Key.RightShift ||
+                key == Key.Capital || key == Key.Tab || key == Key.LeftCtrl || key == Key.RightCtrl || key == Key.LeftAlt || key == Key.RightAlt)
+                _soundService.PlayModifier();
+            else
+                _soundService.PlayClick();
+        }
+
         private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
         private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
-        private void KeyboardHookService_KeyDown(object sender, Key e) { if (!_isSimulating) Dispatcher.Invoke(() => { PlaySoundForKey(e); HighlightKey(e, true); }); }
-        private void KeyboardHookService_KeyUp(object sender, Key e) { if (!_isSimulating) Dispatcher.Invoke(() => HighlightKey(e, false)); }
+
+        private void KeyboardHookService_KeyDown(object sender, Key e)
+        {
+            if (_isSimulating) return;
+            Dispatcher.Invoke(() =>
+            {
+                PlaySoundForKey(e);
+                HighlightKey(e, true);
+            });
+        }
+
+        private void KeyboardHookService_KeyUp(object sender, Key e)
+        {
+            if (_isSimulating) return;
+            Dispatcher.Invoke(() => HighlightKey(e, false));
+        }
+
         private void HighlightKey(Key key, bool isPressed)
         {
             if (key == Key.Capital || key == Key.LeftShift || key == Key.RightShift) return;
             if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
             {
-                if (isPressed) { border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor"); AnimateKeyPress(border); }
-                else { border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor"); AnimateKeyRelease(border); }
+                if (isPressed)
+                {
+                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                    AnimateKeyPress(border);
+                }
+                else
+                {
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                    AnimateKeyRelease(border);
+                }
             }
         }
         #endregion
 
         #region UI Logic
-        private void MenuToggleButton_Click(object sender, RoutedEventArgs e) { if (sender is System.Windows.Controls.Primitives.ToggleButton tb) { if (tb.IsChecked == true && tb.ContextMenu != null) { tb.ContextMenu.PlacementTarget = tb; tb.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom; tb.ContextMenu.IsOpen = true; } else if (tb.ContextMenu != null) tb.ContextMenu.IsOpen = false; } }
-        private void MainMenu_Closed(object sender, RoutedEventArgs e) { if (sender is ContextMenu menu && menu.PlacementTarget is System.Windows.Controls.Primitives.ToggleButton tb) tb.IsChecked = false; }
-        private void Opacity_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o)) MainBorder.Opacity = o; }
-        private void Zoom_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f)) { var d = TimeSpan.FromMilliseconds(400); var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut }; WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(f, d) { EasingFunction = ease }); WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(f, d) { EasingFunction = ease }); } }
-        private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) ApplyTheme(th); }
-        private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) _soundService.IsEnabled = mi.IsChecked; }
+        private void MenuToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Primitives.ToggleButton toggleButton)
+            {
+                if (toggleButton.IsChecked == true && toggleButton.ContextMenu != null)
+                {
+                    toggleButton.ContextMenu.PlacementTarget = toggleButton;
+                    toggleButton.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                    toggleButton.ContextMenu.IsOpen = true;
+                }
+                else if (toggleButton.ContextMenu != null) toggleButton.ContextMenu.IsOpen = false;
+            }
+        }
+
+        private void MainMenu_Closed(object sender, RoutedEventArgs e)
+        {
+            if (sender is ContextMenu menu && menu.PlacementTarget is System.Windows.Controls.Primitives.ToggleButton toggleButton)
+                toggleButton.IsChecked = false;
+        }
+
+        private void Opacity_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o))
+            {
+                MainBorder.Opacity = o;
+                Properties.Settings.Default.Opacity = o;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void Zoom_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
+            {
+                var duration = TimeSpan.FromMilliseconds(400);
+                var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(f, duration) { EasingFunction = ease });
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(f, duration) { EasingFunction = ease });
+
+                Properties.Settings.Default.Zoom = f;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void Theme_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string th)
+            {
+                ApplyTheme(th);
+                Properties.Settings.Default.Theme = th;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void SoundToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi)
+            {
+                _soundService.IsEnabled = mi.IsChecked;
+                Properties.Settings.Default.SoundEnabled = mi.IsChecked;
+                Properties.Settings.Default.Save();
+            }
+        }
+
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => Close();
 
         private void LoadThemeResources(string themeName)
@@ -231,45 +432,53 @@ namespace MacKeyboardWindows
         {
             try
             {
-                // 1. Captura "Visual" (Vectorial) del estado actual
-                // Usamos VisualBrush para evitar problemas de pixeles y alineación al escalar
-                var visualBrush = new VisualBrush(MainBorder)
+                if (MainBorder.ActualWidth > 0 && MainBorder.ActualHeight > 0)
                 {
-                    Stretch = Stretch.None,
-                    TileMode = TileMode.None,
-                    AlignmentX = AlignmentX.Left,
-                    AlignmentY = AlignmentY.Top
-                };
+                    // 1. Captura "Visual" del estado actual (usando VisualBrush en lugar de RenderTargetBitmap)
+                    var visualBrush = new VisualBrush(MainBorder)
+                    {
+                        Stretch = Stretch.None,
+                        TileMode = TileMode.None,
+                        AlignmentX = AlignmentX.Left,
+                        AlignmentY = AlignmentY.Top
+                    };
 
-                TransitionVisual.Fill = visualBrush;
-                TransitionOverlay.Visibility = Visibility.Visible;
+                    // CORREGIDO: Usamos TransitionVisual (Rectangle), no TransitionImage
+                    TransitionVisual.Fill = visualBrush;
+                    TransitionOverlay.Visibility = Visibility.Visible;
+                }
 
-                // 2. Cambiar recursos
+                // 2. Cargar nuevo tema
                 LoadThemeResources(themeName);
 
                 // 3. Animación de barrido
-                var maskBrush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
-                var stopTransparent = new GradientStop(Colors.Transparent, -0.2);
-                var stopBlack = new GradientStop(Colors.Black, -0.1);
-                maskBrush.GradientStops.Add(stopTransparent); maskBrush.GradientStops.Add(stopBlack);
-                TransitionVisual.OpacityMask = maskBrush;
+                if (TransitionOverlay.Visibility == Visibility.Visible)
+                {
+                    var maskBrush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
+                    var stopTransparent = new GradientStop(Colors.Transparent, -0.2);
+                    var stopBlack = new GradientStop(Colors.Black, -0.1);
+                    maskBrush.GradientStops.Add(stopTransparent); maskBrush.GradientStops.Add(stopBlack);
+                    TransitionVisual.OpacityMask = maskBrush;
 
-                var duration = TimeSpan.FromMilliseconds(800);
-                var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
-                stopTransparent.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-                stopBlack.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.1, duration) { EasingFunction = ease });
+                    var duration = TimeSpan.FromMilliseconds(800);
+                    var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
 
-                TransitionGlassWave.Opacity = 0.8;
-                var waveAnim = new DoubleAnimation(-TransitionGlassWave.Width, 1100, duration) { EasingFunction = ease };
-                GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, waveAnim);
+                    stopTransparent.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+                    stopBlack.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.1, duration) { EasingFunction = ease });
 
-                waveAnim.Completed += (s, args) => { TransitionOverlay.Visibility = Visibility.Collapsed; TransitionVisual.Fill = null; TransitionVisual.OpacityMask = null; GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, null); GlassWaveTranslate.X = -100; };
+                    TransitionGlassWave.Opacity = 0.8;
+                    var waveAnim = new DoubleAnimation(-TransitionGlassWave.Width, 1100, duration) { EasingFunction = ease };
+                    GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, waveAnim);
+
+                    waveAnim.Completed += (s, args) => { TransitionOverlay.Visibility = Visibility.Collapsed; TransitionVisual.Fill = null; TransitionVisual.OpacityMask = null; GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, null); GlassWaveTranslate.X = -100; };
+                }
             }
             catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
         }
 
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
+
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
             var duration = TimeSpan.FromMilliseconds(500); var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };

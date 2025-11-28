@@ -114,7 +114,7 @@
                                     <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
                                     <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
                                 </MenuItem>
-                                <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
+                                <MenuItem x:Name="SoundMenuItem" Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
                                 <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                                 <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
                             </ContextMenu>
