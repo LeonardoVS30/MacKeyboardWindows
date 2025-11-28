@@ -140,6 +140,26 @@
             <!-- CONTENEDOR DINÁMICO PARA EL TECLADO -->
             <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
 
+            <!-- TRANSITION OVERLAY -->
+            <Grid x:Name="TransitionOverlay" Grid.RowSpan="2" Visibility="Collapsed" IsHitTestVisible="False">
+                <Image x:Name="TransitionImage" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                <Border x:Name="TransitionGlassWave" HorizontalAlignment="Left" Width="60" Opacity="0.8" VerticalAlignment="Stretch">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#00FFFFFF" Offset="0"/>
+                            <GradientStop Color="#60FFFFFF" Offset="0.5"/>
+                            <GradientStop Color="#00FFFFFF" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Border.Effect>
+                        <BlurEffect Radius="20"/>
+                    </Border.Effect>
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="GlassWaveTranslate" X="-100"/>
+                    </Border.RenderTransform>
+                </Border>
+            </Grid>
+
         </Grid>
     </Border>
 </Window>

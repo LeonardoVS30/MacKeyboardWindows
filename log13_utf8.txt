@@ -1,0 +1,19 @@
+﻿  Determinando los proyectos que se van a restaurar...
+C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj : warning NU1701: El paquete "InputSimulator 1.0.4" se restaur├│ con ".NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1" en lugar de la plataforma de destino del proyecto "net8.0-windows7.0". Puede que el paquete no sea totalmente compatible con el proyecto. [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.sln]
+  Todos los proyectos est├ín actualizados para la restauraci├│n.
+C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj : warning NU1701: El paquete "InputSimulator 1.0.4" se restaur├│ con ".NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1" en lugar de la plataforma de destino del proyecto "net8.0-windows7.0". Puede que el paquete no sea totalmente compatible con el proyecto.
+C:\Users\R7\Documents\MacKeyboardWindows\MainWindow.xaml.cs(213,9): error CS1519: Invalid token '}' in a member declaration [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj]
+C:\Users\R7\Documents\MacKeyboardWindows\MainWindow.xaml.cs(549,10): error CS1513: Se esperaba } [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj]
+C:\Users\R7\Documents\MacKeyboardWindows\MainWindow.xaml.cs(576,1): error CS1022: Se esperaba una definici├│n de tipo o espacio de nombres, o el fin del archivo [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj]
+
+ERROR al compilar.
+
+C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj : warning NU1701: El paquete "InputSimulator 1.0.4" se restaur├│ con ".NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1" en lugar de la plataforma de destino del proyecto "net8.0-windows7.0". Puede que el paquete no sea totalmente compatible con el proyecto. [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.sln]
+C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj : warning NU1701: El paquete "InputSimulator 1.0.4" se restaur├│ con ".NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1" en lugar de la plataforma de destino del proyecto "net8.0-windows7.0". Puede que el paquete no sea totalmente compatible con el proyecto.
+C:\Users\R7\Documents\MacKeyboardWindows\MainWindow.xaml.cs(213,9): error CS1519: Invalid token '}' in a member declaration [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj]
+C:\Users\R7\Documents\MacKeyboardWindows\MainWindow.xaml.cs(549,10): error CS1513: Se esperaba } [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj]
+C:\Users\R7\Documents\MacKeyboardWindows\MainWindow.xaml.cs(576,1): error CS1022: Se esperaba una definici├│n de tipo o espacio de nombres, o el fin del archivo [C:\Users\R7\Documents\MacKeyboardWindows\MacKeyboardWindows.csproj]
+    2 Advertencia(s)
+    3 Errores
+
+Tiempo transcurrido 00:00:01.25
