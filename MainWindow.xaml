@@ -39,21 +39,38 @@
 
     <Border BorderThickness="1" CornerRadius="10" Margin="10" 
             x:Name="MainBorder" Background="{DynamicResource MainBackgroundColor}" 
-            BorderBrush="{DynamicResource BorderColor}">
+            BorderBrush="{DynamicResource BorderColor}" RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TransformGroup>
+                <ScaleTransform x:Name="MainBorderScale" ScaleX="1.0" ScaleY="1.0"/>
+                <TranslateTransform x:Name="MainBorderTranslate" Y="0"/>
+            </TransformGroup>
+        </Border.RenderTransform>
+        <Border.LayoutTransform>
+            <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
+        </Border.LayoutTransform>
+
         <Grid x:Name="LayoutRoot">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Barra de título -->
+                <RowDefinition Height="Auto"/>
+                <!-- Teclado -->
+            </Grid.RowDefinitions>
+
             <!-- FILA DE CABECERA (TÍTULO Y BOTONES) -->
-            <Grid x:Name="HeaderPanel" Height="32" Background="{DynamicResource HeaderBackgroundColor}"
+            <Grid Grid.Row="0" x:Name="HeaderPanel" Height="32" Background="{DynamicResource HeaderBackgroundColor}"
                   MouseLeftButtonDown="HeaderPanel_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <!-- Menú -->
-                    <ColumnDefinition Width="*"/>
-                    <!-- Espacio vacío (para arrastrar) -->
                     <ColumnDefinition Width="Auto"/>
+                    <!-- Espacio vacío (para arrastrar) -->
+                    <ColumnDefinition Width="*"/>
                     <!-- Botones acción derecha -->
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- BOTÓN DE MENÚ HAMBURGUESA ANIMADO -->
-                <!-- Usamos un ToggleButton para mantener el estado abierto/cerrado -->
                 <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" 
                               Template="{StaticResource HamburgerMenuTemplate}"
                               Click="MenuToggleButton_Click">
@@ -65,7 +82,6 @@
                                 <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
                                 <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
                                 <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
-                                <!-- AÑADIDO -->
                             </MenuItem>
                             <MenuItem Header="Opacity">
                                 <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
@@ -98,22 +114,19 @@
                 <!-- Botones a la derecha -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
 
-                    <!-- Botón Minimizar (Círculo con guion) -->
+                    <!-- Botón Minimizar -->
                     <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
                             ToolTip="Minimizar" 
                             MouseLeftButtonDown="MinimizeButton_Click">
-                        <Path Data="{StaticResource IconWindowMinimizar}" 
+                        <Path Data="{StaticResource IconWindowMinimize}" 
                               Style="{StaticResource NeumorphicHeaderIconStyle}"
                               Width="8" Height="2"/>
-                        <!-- Ajuste fino del tamaño del icono -->
                     </Border>
 
-                    <!-- Botón Cerrar (Círculo con X) -->
+                    <!-- Botón Cerrar -->
                     <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
                             ToolTip="Cerrar" 
                             MouseLeftButtonDown="CloseButton_Click">
-                        <!-- Un pequeño margen rojo sutil al hacer hover sería genial, 
-                             pero para mantenerlo monocromo usamos el estilo base -->
                         <Path Data="{StaticResource IconWindowClose}" 
                               Style="{StaticResource NeumorphicHeaderIconStyle}"
                               Width="8" Height="8"/>
