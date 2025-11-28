@@ -296,6 +296,11 @@ namespace MacKeyboardWindows
                     // Restaurar escala
                     if (border.RenderTransform is ScaleTransform stRestore)
                     {
+                        if (stRestore.IsFrozen)
+                        {
+                            stRestore = stRestore.Clone();
+                            border.RenderTransform = stRestore;
+                        }
                         stRestore.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
                         stRestore.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
                     }
@@ -363,6 +368,11 @@ namespace MacKeyboardWindows
                     // Restaurar escala física
                     if (border.RenderTransform is ScaleTransform st)
                     {
+                        if (st.IsFrozen)
+                        {
+                            st = st.Clone();
+                            border.RenderTransform = st;
+                        }
                         var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
                         st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
                         st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
