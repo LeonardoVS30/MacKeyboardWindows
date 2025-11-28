@@ -134,7 +134,7 @@ namespace MacKeyboardWindows
             _capsLockBorder = null; _leftShiftBorder = null; _rightShiftBorder = null;
 
             for (int i = 0; i < layout.Count; i++)
-                KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             for (int rowIndex = 0; rowIndex < layout.Count; rowIndex++)
             {
@@ -200,7 +200,7 @@ namespace MacKeyboardWindows
                     }
                     // -------------------------
 
-                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel };
+                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel, Height = 60 };
                     border.MouseLeftButtonDown += Key_MouseLeftButtonDown;
                     Grid.SetColumn(border, colIndex);
                     rowGrid.Children.Add(border);
