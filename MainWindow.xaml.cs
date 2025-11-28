@@ -110,19 +110,10 @@ namespace MacKeyboardWindows
             _currentLayout = name;
             var layout = LayoutFactory.GetLayout(name);
 
-            // Animación de cambio de layout (Fade Out -> Rebuild -> Fade In)
-            var duration = TimeSpan.FromMilliseconds(150);
-            var fadeOut = new DoubleAnimation(0, duration);
-            var fadeIn = new DoubleAnimation(1, duration);
-
-            fadeOut.Completed += (s, e) =>
-            {
-                BuildKeyboardUI(layout);
-                UpdateKeyboardState();
-                KeyboardContainer.BeginAnimation(OpacityProperty, fadeIn);
-            };
-
-            KeyboardContainer.BeginAnimation(OpacityProperty, fadeOut);
+            // Cargar layout directamente para evitar problemas de visualización
+            BuildKeyboardUI(layout);
+            UpdateKeyboardState();
+            KeyboardContainer.Opacity = 1.0;
         }
 
         private void Layout_Click(object sender, RoutedEventArgs e)
@@ -383,8 +374,6 @@ namespace MacKeyboardWindows
         }
         #endregion
 
-
-
         #region UI Logic (Themes, Menu, Chrome)
 
         // --- Lógica del Menú Animado (Hamburguesa) ---
@@ -643,4 +632,3 @@ namespace MacKeyboardWindows
     }
     #endregion
 }
-#endregion
