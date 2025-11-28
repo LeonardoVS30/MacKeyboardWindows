@@ -110,8 +110,7 @@
         <Setter Property="Padding" Value="0"/>
         <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
     </Style>
-
-    <!-- Estilo "Aesthetic" para el Menú Desplegable -->
+    <!-- Estilo "Aesthetic" para el Menú Desplegable con Animación Tahoe -->
     <Style x:Key="AppContextMenuStyle" TargetType="ContextMenu">
         <Setter Property="Background" Value="{DynamicResource KeyBackgroundColor}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource KeyBorderColor}"/>
@@ -121,25 +120,68 @@
         <Setter Property="HasDropShadow" Value="True"/>
         <Setter Property="HorizontalOffset" Value="-5"/>
         <Setter Property="VerticalOffset" Value="5"/>
+
+        <!-- LÍNEA ELIMINADA: <Setter Property="AllowsTransparency" Value="True"/> -->
+        <!-- No es necesaria aquí porque el Popup interno ya lo maneja -->
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="{TemplateBinding Background}"
+                    <Border x:Name="MenuBorder"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8" 
+                            CornerRadius="12" 
                             Padding="{TemplateBinding Padding}"
-                            SnapsToDevicePixels="True">
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0">
+
                         <Border.Effect>
-                            <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                            <DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.2" Color="Black"/>
                         </Border.Effect>
+
+                        <Border.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="MenuScale" ScaleX="0.9" ScaleY="0.9"/>
+                                <TranslateTransform x:Name="MenuTranslate" Y="-10"/>
+                            </TransformGroup>
+                        </Border.RenderTransform>
+
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <QuinticEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="MenuScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.25">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="MenuScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.25">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="MenuTranslate" Storyboard.TargetProperty="Y" To="0" Duration="0:0:0.25">
+                                            <DoubleAnimation.EasingFunction>
+                                                <QuinticEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+
                         <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
-
     <!-- Estilo de MenuItem con Checkbox Aesthetic -->
     <Style TargetType="{x:Type MenuItem}">
         <Setter Property="Padding" Value="10,8"/>
