@@ -258,13 +258,12 @@ namespace MacKeyboardWindows
                 e.Handled = true;
 
                 // 1. Sonido
-                    // Restaurar escala física
-                    if (border.RenderTransform is ScaleTransform st)
-                    {
-                        var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
-                        st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
-                        st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
-                    }
+                // Restaurar escala física
+                if (border.RenderTransform is ScaleTransform st)
+                {
+                    var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+                    st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+                    st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
                 }
             }
         }
@@ -399,7 +398,7 @@ namespace MacKeyboardWindows
 
         // --- Botones de la ventana ---
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
-        
+
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
             // Animación de minimizar estilo macOS Tahoe 26 (Smoother Genie-like)
@@ -414,8 +413,8 @@ namespace MacKeyboardWindows
             var sb = new Storyboard();
 
             Storyboard.SetTargetName(scaleX, "MainBorderScale");
-            Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
-            
+           Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
+
             Storyboard.SetTargetName(scaleY, "MainBorderScale");
             Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
 
@@ -433,7 +432,7 @@ namespace MacKeyboardWindows
             sb.Completed += (s, args) =>
             {
                 WindowState = WindowState.Minimized;
-                
+
                 // Detener el storyboard para liberar las propiedades
                 sb.Stop(this);
 
@@ -459,34 +458,44 @@ namespace MacKeyboardWindows
             var hwnd = helper.Handle;
             var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
-            
+
             // Aplicar tema inicial (ahora que la ventana está lista y MainBorder existe)
             ApplyTheme("System");
         }
 
-        #region Window Blur Class
-        internal static class WindowBlur
+        private void StopKeyboardHook()
         {
-            [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-            [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
-            internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
-            internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
-            [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
-            public static void EnableBlur(Window window, bool enable)
-            {
-                var windowHelper = new WindowInteropHelper(window);
-                if (windowHelper.Handle == IntPtr.Zero) return;
-
-                var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
-                var accentStructSize = Marshal.SizeOf(accent);
-                var accentPtr = Marshal.AllocHGlobal(accentStructSize);
-                Marshal.StructureToPtr(accent, accentPtr, false);
-                var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
-                SetWindowCompositionAttribute(windowHelper.Handle, ref data);
-                Marshal.FreeHGlobal(accentPtr);
-            }
+            _keyboardHookService?.Dispose();
         }
-        #endregion
-        #endregion
+
+        private void StartKeyboardHook()
+        {
+            _keyboardHookService?.Start();
+        }
     }
+
+    #region Window Blur Class
+    internal static class WindowBlur
+    {
+        [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+        [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
+        internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
+        internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
+        [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
+        public static void EnableBlur(Window window, bool enable)
+        {
+            var windowHelper = new WindowInteropHelper(window);
+            if (windowHelper.Handle == IntPtr.Zero) return;
+
+            var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
+            var accentStructSize = Marshal.SizeOf(accent);
+            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
+            Marshal.StructureToPtr(accent, accentPtr, false);
+            var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
+            SetWindowCompositionAttribute(windowHelper.Handle, ref data);
+            Marshal.FreeHGlobal(accentPtr);
+        }
+    }
+    #endregion
 }
+#endregion
