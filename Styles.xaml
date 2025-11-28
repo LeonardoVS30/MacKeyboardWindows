@@ -10,13 +10,9 @@
     <Geometry x:Key="IconWindowMinimize">M0,5 H10</Geometry>
     <Geometry x:Key="IconWindowClose">M0,0 L10,10 M0,10 L10,0</Geometry>
 
-    <!-- ESTILO AÑADIDO para el ScrollViewer del menú (MOVIDO AL PRINCIPIO) -->
-    <Style x:Key="MenuScrollViewerStyle" TargetType="ScrollViewer">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
-    </Style>
+    <!-- GLOBAL EASING FUNCTION (Tahoe 26 Style) -->
+    <!-- Definido al principio para evitar errores de referencia estática -->
+    <QuinticEase x:Key="TahoeEase" EasingMode="EaseOut"/>
 
     <!-- ESTILOS PARA BOTONES DE ICONOS -->
     <Style x:Key="IconButtonStyle" TargetType="Border">
@@ -27,10 +23,32 @@
         <Setter Property="Margin" Value="2"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+            </Setter.Value>
+        </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="#20888888"/>
             </Trigger>
+            <EventTrigger RoutedEvent="MouseEnter">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.15" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.15" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="MouseLeave">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
         </Style.Triggers>
     </Style>
 
@@ -51,6 +69,12 @@
         <Setter Property="CornerRadius" Value="6"/>
         <Setter Property="Margin" Value="2,3,2,3"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="KeyTextStyle" TargetType="TextBlock">
@@ -77,6 +101,14 @@
                 <Setter Property="Opacity" Value="0.1" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- ESTILO AÑADIDO para el ScrollViewer del menú -->
+    <Style x:Key="MenuScrollViewerStyle" TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
     </Style>
 
     <!-- Estilo "Aesthetic" para el Menú Desplegable -->
@@ -211,6 +243,12 @@
         <Setter Property="Margin" Value="6,0,0,0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Effect">
             <Setter.Value>
                 <DropShadowEffect BlurRadius="4" ShadowDepth="2" Direction="270" Color="Black" Opacity="0.4"/>
@@ -221,6 +259,22 @@
                 <Setter Property="Background" Value="#40FFFFFF"/>
                 <Setter Property="BorderBrush" Value="#80FFFFFF"/>
             </Trigger>
+            <EventTrigger RoutedEvent="MouseEnter">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.2" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.2" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="MouseLeave">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.3" EasingFunction="{StaticResource TahoeEase}"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
         </Style.Triggers>
     </Style>
 

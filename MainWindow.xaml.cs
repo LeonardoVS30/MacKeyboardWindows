@@ -261,8 +261,23 @@ namespace MacKeyboardWindows
                 // 1. Sonido
                 PlaySoundForKey(keyModel.WpfKey);
 
-                // 2. Feedback Visual Inmediato
+                // 2. Feedback Visual Inmediato (Color + Escala)
                 border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+
+                // Animación de escala "Tactile Click"
+                var scaleDown = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50));
+                var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+
+                if (border.RenderTransform is ScaleTransform st)
+                {
+                    if (st.IsFrozen)
+                    {
+                        st = st.Clone();
+                        border.RenderTransform = st;
+                    }
+                    st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleDown);
+                    st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleDown);
+                }
 
                 // 3. Simular pulsación
                 _isSimulating = true;
@@ -278,13 +293,37 @@ namespace MacKeyboardWindows
                 {
                     await Task.Delay(50);
                     border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                    
+                    // Restaurar escala
+                    if (border.RenderTransform is ScaleTransform stRestore)
+                    {
+                        if (stRestore.IsFrozen)
+                        {
+                            stRestore = stRestore.Clone();
+                            border.RenderTransform = stRestore;
+                        }
+                        stRestore.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+                        stRestore.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
+                    }
                 }
             }
         }
 
-        // Hooks del teclado físico
-        private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
-        private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
+        private void PlaySoundForKey(Key key)
+        {
+            if (key == Key.Space || key == Key.Return || key == Key.Back ||
+                key == Key.LeftShift || key == Key.RightShift ||
+                key == Key.Capital || key == Key.Tab ||
+                key == Key.LeftCtrl || key == Key.RightCtrl ||
+                key == Key.LeftAlt || key == Key.RightAlt)
+            {
+                _soundService.PlayModifier();
+            }
+            else
+            {
+                _soundService.PlayClick();
+            }
+        }
 
         private void KeyboardHookService_KeyDown(object sender, Key e)
         {
@@ -309,24 +348,37 @@ namespace MacKeyboardWindows
 
             if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
             {
-                if (isPressed) border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
-                else border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
-            }
-        }
-
-        private void PlaySoundForKey(Key key)
-        {
-            if (key == Key.Space || key == Key.Return || key == Key.Back ||
-                key == Key.LeftShift || key == Key.RightShift ||
-                key == Key.Capital || key == Key.Tab ||
-                key == Key.LeftCtrl || key == Key.RightCtrl ||
-                key == Key.LeftAlt || key == Key.RightAlt)
-            {
-                _soundService.PlayModifier();
-            }
-            else
-            {
-                _soundService.PlayClick();
+                if (isPressed)
+                {
+                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
+                    // Animación de escala física
+                    if (border.RenderTransform is ScaleTransform st)
+                    {
+                        if (st.IsFrozen)
+                        {
+                            st = st.Clone();
+                            border.RenderTransform = st;
+                        }
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50)));
+                    }
+                }
+                else
+                {
+                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
+                    // Restaurar escala física
+                    if (border.RenderTransform is ScaleTransform st)
+                    {
+                        if (st.IsFrozen)
+                        {
+                            st = st.Clone();
+                            border.RenderTransform = st;
+                        }
+                        var scaleUp = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
+                        st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+                        st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp);
+                    }
+                }
             }
         }
         #endregion
@@ -565,9 +617,9 @@ namespace MacKeyboardWindows
         {
             if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
             {
-                // Animación suave de escala (Apple-style: CubicEaseInOut)
-                var duration = TimeSpan.FromMilliseconds(300);
-                var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+                // Animación suave de escala (Tahoe 26 Style: QuinticEase)
+                var duration = TimeSpan.FromMilliseconds(400);
+                var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
 
                 var animX = new DoubleAnimation(f, duration) { EasingFunction = ease };
                 var animY = new DoubleAnimation(f, duration) { EasingFunction = ease };
@@ -686,6 +738,8 @@ namespace MacKeyboardWindows
 
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
 
+        // --- Botones de la ventana ---
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed)
@@ -694,9 +748,9 @@ namespace MacKeyboardWindows
 
         private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
         {
-            // Animación de minimizar estilo macOS (Genie-like approximation: Scale Down + Translate Down + Fade Out)
-            var duration = TimeSpan.FromMilliseconds(350);
-            var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+            // Animación de minimizar estilo macOS Tahoe 26 (Smoother Genie-like)
+            var duration = TimeSpan.FromMilliseconds(500);
+            var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
 
             var scaleX = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
             var scaleY = new DoubleAnimation(0.1, duration) { EasingFunction = ease };
@@ -706,8 +760,8 @@ namespace MacKeyboardWindows
             var sb = new Storyboard();
 
             Storyboard.SetTargetName(scaleX, "MainBorderScale");
-            Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
-            
+           Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
+
             Storyboard.SetTargetName(scaleY, "MainBorderScale");
             Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
 
@@ -725,7 +779,7 @@ namespace MacKeyboardWindows
             sb.Completed += (s, args) =>
             {
                 WindowState = WindowState.Minimized;
-                
+
                 // Detener el storyboard para liberar las propiedades
                 sb.Stop(this);
 
@@ -751,34 +805,39 @@ namespace MacKeyboardWindows
             var hwnd = helper.Handle;
             var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
-            
+
             // Aplicar tema inicial (ahora que la ventana está lista y MainBorder existe)
             ApplyTheme("System");
         }
         #endregion
 
-        #region Window Blur Class
-        internal static class WindowBlur
-        {
-            [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-            [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
-            internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
-            internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
-            [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
-            public static void EnableBlur(Window window, bool enable)
-            {
-                var windowHelper = new WindowInteropHelper(window);
-                if (windowHelper.Handle == IntPtr.Zero) return;
+        private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
 
-                var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
-                var accentStructSize = Marshal.SizeOf(accent);
-                var accentPtr = Marshal.AllocHGlobal(accentStructSize);
-                Marshal.StructureToPtr(accent, accentPtr, false);
-                var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
-                SetWindowCompositionAttribute(windowHelper.Handle, ref data);
-                Marshal.FreeHGlobal(accentPtr);
-            }
-        }
-        #endregion
+        private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
     }
+
+    #region Window Blur Class
+    internal static class WindowBlur
+    {
+        [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+        [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
+        internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
+        internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
+        [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
+        public static void EnableBlur(Window window, bool enable)
+        {
+            var windowHelper = new WindowInteropHelper(window);
+            if (windowHelper.Handle == IntPtr.Zero) return;
+
+            var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
+            var accentStructSize = Marshal.SizeOf(accent);
+            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
+            Marshal.StructureToPtr(accent, accentPtr, false);
+            var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
+            SetWindowCompositionAttribute(windowHelper.Handle, ref data);
+            Marshal.FreeHGlobal(accentPtr);
+        }
+    }
+    #endregion
 }
+#endregion
