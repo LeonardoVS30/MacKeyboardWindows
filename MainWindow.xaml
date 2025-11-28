@@ -12,15 +12,19 @@
 
     <Window.Resources>
         <!-- ANIMACIÓN DEL MENÚ HAMBURGUESA -->
+        <!-- Convierte las 3 líneas en una X cuando está marcado -->
         <ControlTemplate x:Key="HamburgerMenuTemplate" TargetType="ToggleButton">
             <Border Background="Transparent" Width="30" Height="30" CornerRadius="15">
                 <Grid Width="16" Height="14" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <!-- Línea Superior -->
                     <Rectangle x:Name="TopLine" Height="2" Width="16" VerticalAlignment="Top" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
                             <RotateTransform Angle="0"/>
                         </Rectangle.RenderTransform>
                     </Rectangle>
+                    <!-- Línea Central -->
                     <Rectangle x:Name="MiddleLine" Height="2" Width="16" VerticalAlignment="Center" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" Opacity="1"/>
+                    <!-- Línea Inferior -->
                     <Rectangle x:Name="BottomLine" Height="2" Width="16" VerticalAlignment="Bottom" Fill="{DynamicResource KeyForegroundColor}" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
                         <Rectangle.RenderTransform>
                             <RotateTransform Angle="0"/>
@@ -29,6 +33,7 @@
                 </Grid>
             </Border>
             <ControlTemplate.Triggers>
+                <!-- Animación al abrir (Checked) -->
                 <Trigger Property="IsChecked" Value="True">
                     <Setter TargetName="TopLine" Property="RenderTransform">
                         <Setter.Value>
@@ -56,15 +61,15 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <!-- CONTENEDOR PRINCIPAL CON LA TRANSFORMACIÓN DE ESCALA -->
     <Grid>
+        <!-- Borde Principal de la Aplicación -->
         <Border Name="MainBorder" Width="1100" MinHeight="350" 
                 Background="{DynamicResource WindowBackgroundColor}" 
                 CornerRadius="12" 
                 BorderBrush="{DynamicResource WindowBorderColor}" 
                 BorderThickness="1">
 
-            <!-- AQUÍ ESTÁ EL SCALE TRANSFORM QUE BUSCA EL CÓDIGO C# -->
+            <!-- Transformación para el Zoom y Animaciones de Minimizado -->
             <Border.LayoutTransform>
                 <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
             </Border.LayoutTransform>
@@ -72,19 +77,26 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <!-- Barra de título -->
                     <RowDefinition Height="*"/>
+                    <!-- Teclado -->
                 </Grid.RowDefinitions>
 
-                <!-- Barra de título -->
+                <!-- Fila 0: Barra de título Estilizada -->
                 <Grid Grid.Row="0" Margin="10,8,10,5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
+                        <!-- Menú -->
                         <ColumnDefinition Width="*"/>
+                        <!-- Espacio vacío -->
                         <ColumnDefinition Width="Auto"/>
+                        <!-- Botones acción derecha -->
                     </Grid.ColumnDefinitions>
 
-                    <!-- Menú Hamburguesa -->
-                    <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" Template="{StaticResource HamburgerMenuTemplate}" Click="MenuToggleButton_Click">
+                    <!-- BOTÓN DE MENÚ (Hamburguesa Animada) -->
+                    <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" 
+                                  Template="{StaticResource HamburgerMenuTemplate}"
+                                  Click="MenuToggleButton_Click">
                         <ToggleButton.ContextMenu>
                             <ContextMenu x:Name="MainMenu" Style="{StaticResource AppContextMenuStyle}" Closed="MainMenu_Closed">
                                 <MenuItem Header="Appearance">
@@ -115,39 +127,56 @@
                                     <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
                                     <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
                                 </MenuItem>
+                                <!-- Opción de Sonido con Checkbox -->
                                 <MenuItem Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
+
                                 <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                                 <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
                             </ContextMenu>
                         </ToggleButton.ContextMenu>
                     </ToggleButton>
 
-                    <!-- Botones Neumórficos -->
+                    <!-- Botones a la derecha (Estilo Neumórfico/Apple Monocromo) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" ToolTip="Minimizar" MouseLeftButtonDown="MinimizeButton_Click">
-                            <Path Data="{StaticResource IconWindowMinimize}" Style="{StaticResource NeumorphicHeaderIconStyle}" Width="8" Height="2"/>
+
+                        <!-- Botón Minimizar -->
+                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
+                                ToolTip="Minimizar" 
+                                MouseLeftButtonDown="MinimizeButton_Click">
+                            <Path Data="{StaticResource IconWindowMinimize}" 
+                                  Style="{StaticResource NeumorphicHeaderIconStyle}"
+                                  Width="8" Height="2"/>
                         </Border>
-                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" ToolTip="Cerrar" MouseLeftButtonDown="CloseButton_Click">
-                            <Path Data="{StaticResource IconWindowClose}" Style="{StaticResource NeumorphicHeaderIconStyle}" Width="8" Height="8"/>
+
+                        <!-- Botón Cerrar -->
+                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" 
+                                ToolTip="Cerrar" 
+                                MouseLeftButtonDown="CloseButton_Click">
+                            <Path Data="{StaticResource IconWindowClose}" 
+                                  Style="{StaticResource NeumorphicHeaderIconStyle}"
+                                  Width="8" Height="8"/>
                         </Border>
+
                     </StackPanel>
                 </Grid>
 
-                <!-- Contenedor del Teclado -->
+                <!-- CONTENEDOR DINÁMICO PARA EL TECLADO -->
+                <!-- Importante: Es un GRID para que BuildKeyboardUI funcione correctamente -->
                 <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
+
             </Grid>
         </Border>
 
         <!-- CAPA DE TRANSICIÓN PARA LA ANIMACIÓN DE TEMA -->
-        <!-- Se superpone al borde principal para mostrar el tema antiguo mientras se anima -->
+        <!-- Se superpone al borde principal para mostrar el efecto líquido -->
         <Grid x:Name="TransitionOverlay" Visibility="Collapsed" IsHitTestVisible="False">
             <Grid.LayoutTransform>
-                <!-- Aplicamos la misma escala para que coincida exactamente -->
+                <!-- Sincroniza el zoom para que la transición coincida en tamaño -->
                 <ScaleTransform ScaleX="{Binding ElementName=WindowScaleTransform, Path=ScaleX}" 
                                  ScaleY="{Binding ElementName=WindowScaleTransform, Path=ScaleY}"/>
             </Grid.LayoutTransform>
 
-            <!-- Imagen del tema antiguo -->
+            <!-- Instantánea del tema antiguo -->
             <Image x:Name="TransitionImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
             <!-- Onda de cristal que barre la pantalla -->
