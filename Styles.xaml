@@ -10,14 +10,6 @@
     <Geometry x:Key="IconWindowMinimize">M0,5 H10</Geometry>
     <Geometry x:Key="IconWindowClose">M0,0 L10,10 M0,10 L10,0</Geometry>
 
-    <!-- ESTILO AÑADIDO para el ScrollViewer del menú -->
-    <Style x:Key="MenuScrollViewerStyle" TargetType="ScrollViewer">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
-    </Style>
-
     <!-- GLOBAL EASING FUNCTION (Tahoe 26 Style) -->
     <QuinticEase x:Key="TahoeEase" EasingMode="EaseOut"/>
 
@@ -108,6 +100,14 @@
                 <Setter Property="Opacity" Value="0.1" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- ESTILO AÑADIDO para el ScrollViewer del menú -->
+    <Style x:Key="MenuScrollViewerStyle" TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Hidden"/>
     </Style>
 
     <!-- Estilo "Aesthetic" para el Menú Desplegable -->
