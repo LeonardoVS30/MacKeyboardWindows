@@ -413,7 +413,47 @@ namespace MacKeyboardWindows
             }
         }
 
-        private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => Close();
+        private void CloseMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            this.Hide();
+        }
+
+        // Doble clic en el icono del reloj -> Restaurar ventana
+        private void NotifyIcon_DoubleClick(object sender, RoutedEventArgs e)
+        {
+            ShowAndRestoreWindow();
+        }
+
+        // Clic en "Show Keyboard" del menú del reloj
+        private void NotifyIcon_Open_Click(object sender, RoutedEventArgs e)
+        {
+            ShowAndRestoreWindow();
+        }
+
+        // Clic en "Exit" del menú del reloj -> CERRAR DE VERDAD
+        private void NotifyIcon_Exit_Click(object sender, RoutedEventArgs e)
+        {
+            // Cerramos la aplicación completamente
+            Application.Current.Shutdown();
+        }
+
+        // Método auxiliar para restaurar la ventana si está minimizada u oculta
+        private void ShowAndRestoreWindow()
+        {
+            this.Show();
+            this.WindowState = WindowState.Normal;
+            this.Activate();
+
+            // Restaurar opacidad y animaciones si venimos de minimizado
+            MainBorder.BeginAnimation(Border.OpacityProperty, null);
+            MainBorder.Opacity = Properties.Settings.Default.Opacity > 0.1 ? Properties.Settings.Default.Opacity : 1.0;
+
+            WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            double zoom = Properties.Settings.Default.Zoom > 0.1 ? Properties.Settings.Default.Zoom : 1.0;
+            WindowScaleTransform.ScaleX = zoom;
+            WindowScaleTransform.ScaleY = zoom;
+        }
 
         private void LoadThemeResources(string themeName)
         {
@@ -491,7 +531,11 @@ namespace MacKeyboardWindows
             sb.Completed += (s, args) => { WindowState = WindowState.Minimized; sb.Stop(this); WindowScaleTransform.ScaleX = 1.0; WindowScaleTransform.ScaleY = 1.0; MainBorder.Opacity = 1.0; };
             sb.Begin(this);
         }
-        private void CloseButton_Click(object sender, MouseButtonEventArgs e) => Close();
+        private void CloseButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            this.Hide(); // Ocultar en lugar de cerrar
+            // Opcional: Mostrar una notificación tipo "Globo" diciendo que la app sigue activa
+        }
         #endregion
 
         #region Window Blur Class
