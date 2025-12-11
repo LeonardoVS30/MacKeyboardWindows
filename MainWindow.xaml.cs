@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -95,6 +96,11 @@ namespace MacKeyboardWindows
 
             // Aplicar el tema guardado visualmente
             if (!string.IsNullOrEmpty(settings.Theme)) ApplyTheme(settings.Theme);
+            // Verificar si está configurado para iniciar con Windows
+            if (StartupMenuItem != null)
+            {
+                StartupMenuItem.IsChecked = IsStartupEnabled();
+            }
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)
@@ -536,6 +542,47 @@ namespace MacKeyboardWindows
             this.Hide(); // Ocultar en lugar de cerrar
             // Opcional: Mostrar una notificación tipo "Globo" diciendo que la app sigue activa
         }
+
+        private void StartupToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi)
+            {
+                SetStartup(mi.IsChecked);
+            }
+        }
+
+        private void SetStartup(bool enable)
+        {
+            const string appName = "MacKeyboardWindows";
+            // Ruta completa al ejecutable actual
+            string exePath = Process.GetCurrentProcess().MainModule.FileName;
+
+            // Abrimos la clave del registro donde Windows busca programas de inicio
+            using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            {
+                if (enable)
+                {
+                    // Añadir al registro
+                    rk.SetValue(appName, exePath);
+                }
+                else
+                {
+                    // Quitar del registro
+                    rk.DeleteValue(appName, false);
+                }
+            }
+        }
+
+        private bool IsStartupEnabled()
+        {
+            const string appName = "MacKeyboardWindows";
+            using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            {
+                // Comprobar si existe el valor
+                return rk.GetValue(appName) != null;
+            }
+        }
+
         #endregion
 
         #region Window Blur Class
