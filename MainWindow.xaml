@@ -1,16 +1,29 @@
-﻿<Window x:Class="MacKeyboardWindows.MainWindow"
+<Window x:Class="MacKeyboardWindows.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:tb="http://www.hardcodet.net/taskbar"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Mac Keyboard for Windows"
         Icon="AppIcon.ico"
-        SizeToContent="WidthAndHeight"
+        SizeToContent="Manual"
+        Width="1100" Height="350"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        ResizeMode="CanResize" 
         Topmost="True"
         Loaded="MainWindow_Loaded"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <!-- CONFIGURACIÓN DE REDIMENSIONADO NATIVO (WINDOW CHROME) -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome 
+            ResizeBorderThickness="10" 
+            CaptionHeight="0" 
+            CornerRadius="12" 
+            GlassFrameThickness="0"/>
+            
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
         <!-- ANIMACIÓN DEL MENÚ HAMBURGUESA -->
@@ -58,119 +71,131 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <Grid>
-        <!-- Borde Principal de la Aplicación -->
-        <Border Name="MainBorder" Width="1100" MinHeight="350" 
-                Background="{DynamicResource WindowBackgroundColor}" 
-                CornerRadius="12" 
-                BorderBrush="{DynamicResource WindowBorderColor}" 
-                BorderThickness="1"
-                HorizontalAlignment="Center" VerticalAlignment="Center">
+    <!-- EL FONDO #01000000 PERMITE QUE EL MOUSE "AGARRE" LOS BORDES TRANSPARENTES -->
+    <Grid Background="#01000000">
 
-            <Border.LayoutTransform>
-                <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
-            </Border.LayoutTransform>
+        <!-- EL VIEWBOX ESCALA EL TECLADO COMPLETO SEGÚN EL TAMAÑO DE LA VENTANA -->
+        <Viewbox Stretch="Uniform" VerticalAlignment="Top">
+            <!-- Usamos un Grid contenedor para que el Border y la Transición ocupen el mismo espacio -->
+            <Grid Width="1100" Height="350">
 
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+                <!-- Tu teclado real -->
+                <Border Name="MainBorder" 
+                    Width="1100" Height="350" 
+                    VerticalAlignment="Top" 
+                    HorizontalAlignment="Left"
+                    Background="{DynamicResource WindowBackgroundColor}" 
+                    CornerRadius="12" 
+                    BorderBrush="{DynamicResource WindowBorderColor}" 
+                    BorderThickness="1">
+                    <Grid>
+                        <!-- ... contenido del teclado ... -->
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="10,4,10,0" VerticalAlignment="Top" Height="40">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- HAMBURGER MENU -->
+                            <ToggleButton x:Name="MenuToggleButton" 
+                                          Grid.Column="0" 
+                                          Template="{StaticResource HamburgerMenuTemplate}"
+                                          VerticalAlignment="Center"
+                                          Click="MenuToggleButton_Click">
+                                <ToggleButton.ContextMenu>
+                                    <ContextMenu Style="{StaticResource AppContextMenuStyle}" Closed="MainMenu_Closed">
+                                        <!-- THEMES -->
+                                        <MenuItem Header="Theme">
+                                            <MenuItem Header="System (Auto)" Tag="System" Click="Theme_Click"/>
+                                            <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
+                                            <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
+                                            <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
+                                        </MenuItem>
+                                        <!-- LAYOUTS -->
+                                        <MenuItem Header="Layout">
+                                            <MenuItem Header="Español (ES)" Tag="ES" Click="Layout_Click"/>
+                                            <MenuItem Header="English (US)" Tag="US" Click="Layout_Click"/>
+                                        </MenuItem>
+                                        <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                        <!-- ZOOM -->
+                                        <MenuItem Header="Zoom">
+                                            <MenuItem Header="50%" Tag="0.5" Click="Zoom_Click"/>
+                                            <MenuItem Header="75%" Tag="0.75" Click="Zoom_Click"/>
+                                            <MenuItem Header="100%" Tag="1.0" Click="Zoom_Click"/>
+                                            <MenuItem Header="125%" Tag="1.25" Click="Zoom_Click"/>
+                                            <MenuItem Header="150%" Tag="1.5" Click="Zoom_Click"/>
+                                        </MenuItem>
+                                        <!-- OPACITY -->
+                                        <MenuItem Header="Opacity">
+                                            <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
+                                            <MenuItem Header="80%" Tag="0.8" Click="Opacity_Click"/>
+                                            <MenuItem Header="60%" Tag="0.6" Click="Opacity_Click"/>
+                                            <MenuItem Header="40%" Tag="0.4" Click="Opacity_Click"/>
+                                        </MenuItem>
+                                        <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                        <!-- TOGGLES -->
+                                        <MenuItem x:Name="SoundMenuItem" Header="Sound" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
+                                        <MenuItem x:Name="StartupMenuItem" Header="Start with Windows" IsCheckable="True" Click="StartupToggle_Click"/>
+                                        <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
+                                        <MenuItem Header="Close to Tray" Click="CloseMenuItem_Click"/>
+                                    </ContextMenu>
+                                </ToggleButton.ContextMenu>
+                            </ToggleButton>
 
-                <!-- Barra de título -->
-                <Grid Grid.Row="0" Margin="10,8,10,5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                            <!-- TITLE -->
+                            <TextBlock Grid.Column="1" 
+                                       Text="LiquidKeys" 
+                                       Foreground="{DynamicResource KeyForegroundColor}" 
+                                       FontFamily="./Fonts/#Inter" 
+                                       FontSize="12" 
+                                       FontWeight="SemiBold"
+                                       Opacity="0.5"
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"/>
 
-                    <ToggleButton x:Name="MenuToggleButton" Grid.Column="0" Template="{StaticResource HamburgerMenuTemplate}" Click="MenuToggleButton_Click">
-                        <ToggleButton.ContextMenu>
-                            <ContextMenu x:Name="MainMenu" Style="{StaticResource AppContextMenuStyle}" Closed="MainMenu_Closed">
-                                <MenuItem Header="Appearance">
-                                    <MenuItem Header="System Theme" Tag="System" Click="Theme_Click"/>
-                                    <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                    <MenuItem Header="Light" Tag="Light" Click="Theme_Click"/>
-                                    <MenuItem Header="Dark" Tag="Dark" Click="Theme_Click"/>
-                                    <MenuItem Header="Liquid Glass" Tag="LiquidGlass" Click="Theme_Click"/>
-                                </MenuItem>
-                                <MenuItem Header="Opacity">
-                                    <MenuItem Header="100%" Tag="1.0" Click="Opacity_Click"/>
-                                    <MenuItem Header="90%" Tag="0.9" Click="Opacity_Click"/>
-                                    <MenuItem Header="80%" Tag="0.8" Click="Opacity_Click"/>
-                                    <MenuItem Header="70%" Tag="0.7" Click="Opacity_Click"/>
-                                </MenuItem>
-                                <MenuItem Header="Zoom">
-                                    <MenuItem Header="50%" Tag="0.5" Click="Zoom_Click"/>
-                                    <MenuItem Header="75%" Tag="0.75" Click="Zoom_Click"/>
-                                    <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                    <MenuItem Header="100% (Default)" Tag="1.0" Click="Zoom_Click"/>
-                                    <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                    <MenuItem Header="125%" Tag="1.25" Click="Zoom_Click"/>
-                                    <MenuItem Header="150%" Tag="1.5" Click="Zoom_Click"/>
-                                    <MenuItem Header="200%" Tag="2.0" Click="Zoom_Click"/>
-                                    <MenuItem Header="250%" Tag="2.5" Click="Zoom_Click"/>
-                                </MenuItem>
-                                <MenuItem Header="Distribución">
-                                    <MenuItem Header="Español" Tag="ES" Click="Layout_Click" />
-                                    <MenuItem Header="Americano" Tag="US" Click="Layout_Click" />
-                                </MenuItem>
-                                <MenuItem x:Name="SoundMenuItem" Header="Sonido" IsCheckable="True" IsChecked="True" Click="SoundToggle_Click"/>
-                                <MenuItem x:Name="StartupMenuItem" Header="Iniciar con Windows" IsCheckable="True" Click="StartupToggle_Click"/>
-                                <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
-                                <MenuItem Header="Close App" Click="CloseMenuItem_Click"/>
-                            </ContextMenu>
-                        </ToggleButton.ContextMenu>
-                    </ToggleButton>
+                            <!-- WINDOW BUTTONS -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" MouseLeftButtonDown="MinimizeButton_Click">
+                                    <Path Data="{StaticResource IconWindowMinimize}" Style="{StaticResource NeumorphicHeaderIconStyle}"/>
+                                </Border>
+                                <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" MouseLeftButtonDown="CloseButton_Click">
+                                    <Path Data="{StaticResource IconWindowClose}" Style="{StaticResource NeumorphicHeaderIconStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                        <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" ToolTip="Minimizar" MouseLeftButtonDown="MinimizeButton_Click">
-                            <Path Data="{StaticResource IconWindowMinimize}" Style="{StaticResource NeumorphicHeaderIconStyle}" Width="8" Height="2"/>
-                        </Border>
-                        <Border Style="{StaticResource NeumorphicHeaderButtonStyle}" ToolTip="Cerrar" MouseLeftButtonDown="CloseButton_Click">
-                            <Path Data="{StaticResource IconWindowClose}" Style="{StaticResource NeumorphicHeaderIconStyle}" Width="8" Height="8"/>
-                        </Border>
-                    </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- CAPA DE TRANSICIÓN: Ahora está dentro del Viewbox -->
+                <!-- Al estar aquí, ya no necesita el LayoutTransform individual -->
+                <Grid x:Name="TransitionOverlay" Visibility="Collapsed" IsHitTestVisible="False">
+                    <Rectangle x:Name="TransitionVisual" 
+                           Width="1100" Height="350" 
+                           RadiusX="12" RadiusY="12"/>
+
+                    <Border x:Name="TransitionGlassWave" Width="120" HorizontalAlignment="Left" VerticalAlignment="Stretch" Background="#40FFFFFF">
+                        <Border.Effect>
+                            <BlurEffect Radius="40"/>
+                        </Border.Effect>
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="GlassWaveTranslate" X="-150"/>
+                        </Border.RenderTransform>
+                    </Border>
                 </Grid>
-
-                <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
             </Grid>
-        </Border>
+        </Viewbox>
 
-        <!-- CAPA DE TRANSICIÓN (MEJORADA) -->
-        <Grid x:Name="TransitionOverlay" Visibility="Collapsed" IsHitTestVisible="False">
-            <!-- Al igual que el MainBorder, este Grid debe tener el mismo LayoutTransform -->
-            <Grid.LayoutTransform>
-                <ScaleTransform ScaleX="{Binding ElementName=WindowScaleTransform, Path=ScaleX}" 
-                                ScaleY="{Binding ElementName=WindowScaleTransform, Path=ScaleY}"/>
-            </Grid.LayoutTransform>
-
-            <!-- En lugar de Image, usamos un Rectangle que se pintará con VisualBrush -->
-            <!-- Esto asegura que el contenido sea idéntico al MainBorder vectorial -->
-            <Rectangle x:Name="TransitionVisual" 
-                       Width="1100" Height="350" 
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       RadiusX="12" RadiusY="12"/>
-
-            <!-- Onda de cristal -->
-            <Border x:Name="TransitionGlassWave" Width="50" HorizontalAlignment="Left" VerticalAlignment="Stretch" Background="#40FFFFFF">
-                <Border.Effect>
-                    <BlurEffect Radius="20"/>
-                </Border.Effect>
-                <Border.RenderTransform>
-                    <TranslateTransform x:Name="GlassWaveTranslate" X="-100"/>
-                </Border.RenderTransform>
-            </Border>
-        </Grid>
-
-        <!-- SISTEMA DE BANDEJA (TRAY ICON) -->
+        <!-- ICONO DE BANDEJA DE ENTRADA -->
         <tb:TaskbarIcon x:Name="MyNotifyIcon"
                         IconSource="/AppIcon.ico"
                         ToolTipText="Mac Keyboard for Windows"
                         TrayMouseDoubleClick="NotifyIcon_DoubleClick">
-
-            <!-- Menú contextual del icono (Reutilizamos tu estilo Aesthetic) -->
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu Style="{StaticResource AppContextMenuStyle}">
                     <MenuItem Header="Show Keyboard" FontWeight="Bold" Click="NotifyIcon_Open_Click"/>
