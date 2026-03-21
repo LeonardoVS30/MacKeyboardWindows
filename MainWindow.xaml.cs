@@ -24,11 +24,36 @@ namespace MacKeyboardWindows
         [DllImport("user32.dll")] public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
         [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
         [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
+        [DllImport("user32.dll")] public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
 
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
         private const int VK_CAPITAL = 0x14;
         private const int VK_SHIFT = 0x10;
+
+        // Mensajes de Windows para redimensionado
+        private const int WM_NCHITTEST = 0x0084;
+        private const int WM_SIZING = 0x0214;
+
+        // Códigos de retorno para áreas de la ventana
+        private const int HTLEFT = 10;
+        private const int HTRIGHT = 11;
+        private const int HTTOP = 12;
+        private const int HTTOPLEFT = 13;
+        private const int HTTOPRIGHT = 14;
+        private const int HTBOTTOM = 15;
+        private const int HTBOTTOMLEFT = 16;
+        private const int HTBOTTOMRIGHT = 17;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT { public int Left, Top, Right, Bottom; }
+
+        [StructLayout(LayoutKind.Sequential)]
+
+        public struct WindowCompositionAttributeData { public int Attribute; public IntPtr Data; public int SizeOfData; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct AccentPolicy { public int AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
         #endregion
 
         #region Fields
@@ -37,7 +62,6 @@ namespace MacKeyboardWindows
         private readonly SoundService _soundService;
         private readonly DispatcherTimer _keyboardStateTimer;
 
-        // Mapas y listas para la UI dinámica
         private readonly Dictionary<Key, Border> _wpfKeyToBorderMap = new Dictionary<Key, Border>();
         private readonly List<Tuple<TextBlock, KeyModel>> _letterKeys = new List<Tuple<TextBlock, KeyModel>>();
         private readonly List<Tuple<TextBlock, KeyModel>> _symbolKeys = new List<Tuple<TextBlock, KeyModel>>();
@@ -45,13 +69,18 @@ namespace MacKeyboardWindows
         private Border _capsLockBorder, _leftShiftBorder, _rightShiftBorder;
         private bool _isSimulating = false;
         private string _currentLayout = "ES";
+
+        // Parámetros de diseño y redimensionado
+        private const double DesignWidth = 1100.0;
+        private const double DesignHeight = 350.0;
+        private const double ASPECT_RATIO = 1100.0 / 350.0;
+        private const int RESIZE_MARGIN = 15; // Sensibilidad para agarrar los bordes
+        private bool _isInternalScaling = false;
         #endregion
 
         public MainWindow()
         {
-            // Aplicar tema inicial antes de inicializar componentes
             LoadThemeResources("System");
-
             InitializeComponent();
 
             _keyboardService = new KeyboardService();
@@ -66,40 +95,76 @@ namespace MacKeyboardWindows
             StateChanged += MainWindow_StateChanged;
         }
 
-        #region Window Lifetime & Events
+        #region Window Lifetime & Resizing Logic
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             StartKeyboardHook();
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
             _keyboardStateTimer.Start();
 
-            // RESTAURAR PREFERENCIAS
             var settings = Properties.Settings.Default;
-
-            // 1. Opacidad
             if (settings.Opacity > 0.1) MainBorder.Opacity = settings.Opacity;
 
-            // 2. Zoom
-            if (settings.Zoom > 0.1)
-            {
-                WindowScaleTransform.ScaleX = settings.Zoom;
-                WindowScaleTransform.ScaleY = settings.Zoom;
-            }
+            // Restaurar zoom y tamaño de ventana
+            double savedZoom = settings.Zoom > 0.1 ? settings.Zoom : 1.0;
+            ApplyZoom(savedZoom, false);
 
-            // 3. Sonido
             _soundService.IsEnabled = settings.SoundEnabled;
             if (SoundMenuItem != null) SoundMenuItem.IsChecked = settings.SoundEnabled;
 
-            // 4. Layout y Tema
             if (!string.IsNullOrEmpty(settings.Layout)) _currentLayout = settings.Layout;
             LoadLayout(_currentLayout);
-
-            // Aplicar el tema guardado visualmente
             if (!string.IsNullOrEmpty(settings.Theme)) ApplyTheme(settings.Theme);
-            // Verificar si está configurado para iniciar con Windows
-            if (StartupMenuItem != null)
+            if (StartupMenuItem != null) StartupMenuItem.IsChecked = IsStartupEnabled();
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var helper = new WindowInteropHelper(this);
+            var hwnd = helper.Handle;
+
+            // No activar al hacer clic (para que no robe el foco de otras apps)
+            SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
+
+            // Registrar el Hook para el redimensionado manual
+            HwndSource source = HwndSource.FromHwnd(hwnd);
+            source.AddHook(WndProc);
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            // Solo necesitamos WM_SIZING. WindowChrome se encarga del resto.
+            if (msg == WM_SIZING)
             {
-                StartupMenuItem.IsChecked = IsStartupEnabled();
+                RECT rect = (RECT)Marshal.PtrToStructure(lParam, typeof(RECT));
+
+                int width = rect.Right - rect.Left;
+
+                // Calcular altura proporcional
+                int newHeight = (int)(width / ASPECT_RATIO);
+
+                // Ajustar el borde inferior según el ancho
+                rect.Bottom = rect.Top + newHeight;
+
+                Marshal.StructureToPtr(rect, lParam, true);
+
+                // Actualizar zoom basado en el ancho
+                double factor = width / 1100.0;
+                Properties.Settings.Default.Zoom = factor;
+                Properties.Settings.Default.Save();
+
+                // No marcamos como handled para que Windows termine de redimensionar la ventana
+            }
+            return IntPtr.Zero;
+        }
+
+        private void MainWindow_StateChanged(object sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Normal)
+            {
+                MainBorder.Opacity = Properties.Settings.Default.Opacity > 0.1 ? Properties.Settings.Default.Opacity : 1.0;
+                ApplyZoom(Properties.Settings.Default.Zoom, false);
             }
         }
 
@@ -109,43 +174,61 @@ namespace MacKeyboardWindows
             SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
             _keyboardStateTimer.Stop();
         }
-
-        private void MainWindow_StateChanged(object sender, EventArgs e)
-        {
-            if (WindowState == WindowState.Normal)
-            {
-                MainBorder.BeginAnimation(Border.OpacityProperty, null);
-                MainBorder.Opacity = Properties.Settings.Default.Opacity > 0.1 ? Properties.Settings.Default.Opacity : 1.0;
-
-                double zoom = Properties.Settings.Default.Zoom > 0.1 ? Properties.Settings.Default.Zoom : 1.0;
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                WindowScaleTransform.ScaleX = zoom;
-                WindowScaleTransform.ScaleY = zoom;
-            }
-        }
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            base.OnSourceInitialized(e);
-            var helper = new WindowInteropHelper(this);
-            var hwnd = helper.Handle;
-            var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
-        }
         #endregion
 
-        #region Layout & UI Construction
-        private void Layout_Click(object sender, RoutedEventArgs e)
+        #region Zoom & Appearance Logic
+        private void Zoom_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.Tag is string layoutName)
+            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
+                ApplyZoom(f, true);
+        }
+
+        private void ApplyZoom(double factor, bool animate)
+        {
+            _isInternalScaling = true;
+            double targetWidth = DesignWidth * factor;
+            double targetHeight = DesignHeight * factor;
+
+            if (animate)
             {
-                LoadLayout(layoutName);
-                Properties.Settings.Default.Layout = layoutName;
+                var duration = TimeSpan.FromMilliseconds(400);
+                var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
+
+                // Animación de escala interna
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(factor, duration) { EasingFunction = ease });
+                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(factor, duration) { EasingFunction = ease });
+
+                // Animación de tamaño de ventana
+                this.BeginAnimation(Window.WidthProperty, new DoubleAnimation(targetWidth, duration) { EasingFunction = ease });
+                var hAnim = new DoubleAnimation(targetHeight, duration) { EasingFunction = ease };
+                hAnim.Completed += (s, e) => _isInternalScaling = false;
+                this.BeginAnimation(Window.HeightProperty, hAnim);
+            }
+            else
+            {
+                WindowScaleTransform.ScaleX = factor;
+                WindowScaleTransform.ScaleY = factor;
+                this.Width = targetWidth;
+                this.Height = targetHeight;
+                _isInternalScaling = false;
+            }
+
+            Properties.Settings.Default.Zoom = factor;
+            Properties.Settings.Default.Save();
+        }
+
+        private void Opacity_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o))
+            {
+                MainBorder.Opacity = o;
+                Properties.Settings.Default.Opacity = o;
                 Properties.Settings.Default.Save();
             }
         }
+        #endregion
 
+        #region Layout Construction
         private void LoadLayout(string name)
         {
             _currentLayout = name;
@@ -158,10 +241,7 @@ namespace MacKeyboardWindows
         {
             KeyboardContainer.Children.Clear();
             KeyboardContainer.RowDefinitions.Clear();
-            _wpfKeyToBorderMap.Clear();
-            _letterKeys.Clear();
-            _symbolKeys.Clear();
-            _capsLockBorder = null; _leftShiftBorder = null; _rightShiftBorder = null;
+            _wpfKeyToBorderMap.Clear(); _letterKeys.Clear(); _symbolKeys.Clear();
 
             for (int i = 0; i < layout.Count; i++)
                 KeyboardContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -170,8 +250,7 @@ namespace MacKeyboardWindows
             {
                 var keyRowModel = layout[rowIndex];
                 var rowGrid = new Grid();
-                foreach (var keyModel in keyRowModel)
-                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(keyModel.WidthFactor, GridUnitType.Star) });
+                foreach (var km in keyRowModel) rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(km.WidthFactor, GridUnitType.Star) });
 
                 for (int colIndex = 0; colIndex < keyRowModel.Count; colIndex++)
                 {
@@ -180,47 +259,22 @@ namespace MacKeyboardWindows
 
                     if (keyModel.DisplayText.StartsWith("ICON_"))
                     {
-                        var path = new System.Windows.Shapes.Path
-                        {
-                            Style = (Style)FindResource("IconPathStyle"),
-                            Stretch = Stretch.Uniform,
-                            Height = 14,
-                            Width = 14
-                        };
-                        string resourceKey = keyModel.DisplayText switch
-                        {
-                            "ICON_DELETE" => "IconDelete",
-                            "ICON_MENU" => "IconMenu",
-                            "ICON_WINDOWS" => "IconWindows",
-                            _ => ""
-                        };
-                        if (!string.IsNullOrEmpty(resourceKey)) path.Data = (Geometry)FindResource(resourceKey);
+                        var path = new System.Windows.Shapes.Path { Style = (Style)FindResource("IconPathStyle"), Stretch = Stretch.Uniform, Height = 14, Width = 14 };
+                        string rk = keyModel.DisplayText switch { "ICON_DELETE" => "IconDelete", "ICON_MENU" => "IconMenu", "ICON_WINDOWS" => "IconWindows", _ => "" };
+                        if (!string.IsNullOrEmpty(rk)) path.Data = (Geometry)FindResource(resourceKey: rk);
                         contentElement = path;
                     }
                     else
                     {
-                        var textBlock = new TextBlock { Style = (Style)FindResource(keyModel.DisplayText.Length > 2 ? "SmallKeyTextStyle" : "KeyTextStyle") };
-                        if (keyModel.DisplayText.Contains("\n"))
-                        {
-                            var parts = keyModel.DisplayText.Split('\n');
-                            textBlock.Inlines.Add(parts[0]);
-                            textBlock.Inlines.Add(new System.Windows.Documents.LineBreak());
-                            textBlock.Inlines.Add(parts[1]);
-                            textBlock.TextAlignment = TextAlignment.Center;
-                        }
-                        else textBlock.Text = keyModel.DisplayText;
-
-                        if (keyModel.IsLetter) _letterKeys.Add(Tuple.Create(textBlock, keyModel));
-                        else if (!string.IsNullOrEmpty(keyModel.ShiftDisplayText)) _symbolKeys.Add(Tuple.Create(textBlock, keyModel));
-
-                        contentElement = textBlock;
+                        var tb = new TextBlock { Style = (Style)FindResource(keyModel.DisplayText.Length > 2 ? "SmallKeyTextStyle" : "KeyTextStyle") };
+                        if (keyModel.DisplayText.Contains("\n")) { var p = keyModel.DisplayText.Split('\n'); tb.Inlines.Add(p[0]); tb.Inlines.Add(new System.Windows.Documents.LineBreak()); tb.Inlines.Add(p[1]); tb.TextAlignment = TextAlignment.Center; }
+                        else tb.Text = keyModel.DisplayText;
+                        if (keyModel.IsLetter) _letterKeys.Add(Tuple.Create(tb, keyModel));
+                        else if (!string.IsNullOrEmpty(keyModel.ShiftDisplayText)) _symbolKeys.Add(Tuple.Create(tb, keyModel));
+                        contentElement = tb;
                     }
 
-                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel };
-
-                    border.RenderTransformOrigin = new Point(0.5, 0.5);
-                    border.RenderTransform = new ScaleTransform(1.0, 1.0);
-
+                    var border = new Border { Style = (Style)FindResource("KeyStyle"), Child = contentElement, Tag = keyModel, RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = new ScaleTransform(1.0, 1.0) };
                     border.MouseLeftButtonDown += Key_MouseLeftButtonDown;
                     Grid.SetColumn(border, colIndex);
                     rowGrid.Children.Add(border);
@@ -236,375 +290,147 @@ namespace MacKeyboardWindows
         }
         #endregion
 
-        #region Keyboard State Management
-        private bool IsCapsLocked() => (GetKeyState(VK_CAPITAL) & 1) != 0;
-        private bool IsShiftPressed() => (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-
-        private void UpdateKeyboardState()
-        {
-            bool capsLockOn = IsCapsLocked();
-            bool shiftDown = IsShiftPressed();
-            bool isUppercase = capsLockOn ^ shiftDown;
-
-            foreach (var (textBlock, keyModel) in _letterKeys)
-                textBlock.Text = isUppercase ? keyModel.DisplayText.ToUpper() : keyModel.DisplayText.ToLower();
-            foreach (var (textBlock, keyModel) in _symbolKeys)
-                textBlock.Text = shiftDown ? keyModel.ShiftDisplayText : keyModel.DisplayText;
-
-            if (_capsLockBorder != null) _capsLockBorder.Background = capsLockOn ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
-            if (_leftShiftBorder != null) _leftShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
-            if (_rightShiftBorder != null) _rightShiftBorder.Background = shiftDown ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
-        }
-        #endregion
-
-        #region Input Handlers (Mouse & Keyboard)
-
+        #region Keyboard Interaction & Animation
         private async void Key_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Border border && border.Tag is KeyModel keyModel)
+            if (sender is Border border && border.Tag is KeyModel km)
             {
-                e.Handled = true;
-                PlaySoundForKey(keyModel.WpfKey);
-
+                e.Handled = true; PlaySoundForKey(km.WpfKey);
                 border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
                 AnimateKeyPress(border);
-
-                _isSimulating = true;
-                _keyboardService.SimulateKeyPress(keyModel.KeyCode);
-                _isSimulating = false;
-
-                await Task.Delay(50);
-                UpdateKeyboardState();
-
-                if (keyModel.WpfKey != Key.Capital && keyModel.WpfKey != Key.LeftShift && keyModel.WpfKey != Key.RightShift)
-                {
-                    await Task.Delay(50);
-                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
-                    AnimateKeyRelease(border);
-                }
+                _isSimulating = true; _keyboardService.SimulateKeyPress(km.KeyCode); _isSimulating = false;
+                await Task.Delay(50); UpdateKeyboardState();
+                if (km.WpfKey != Key.Capital && km.WpfKey != Key.LeftShift && km.WpfKey != Key.RightShift) { await Task.Delay(50); border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor"); AnimateKeyRelease(border); }
             }
         }
 
-        private void AnimateKeyPress(Border border)
-        {
-            if (border.RenderTransform is ScaleTransform st)
-            {
-                if (st.IsFrozen) { st = st.Clone(); border.RenderTransform = st; }
-                var anim = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50));
-                st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
-                st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
-            }
-        }
-
-        private void AnimateKeyRelease(Border border)
-        {
-            if (border.RenderTransform is ScaleTransform st)
-            {
-                if (st.IsFrozen) { st = st.Clone(); border.RenderTransform = st; }
-                var anim = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } };
-                st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
-                st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
-            }
-        }
-
-        private void PlaySoundForKey(Key key)
-        {
-            if (key == Key.Space || key == Key.Return || key == Key.Back || key == Key.LeftShift || key == Key.RightShift ||
-                key == Key.Capital || key == Key.Tab || key == Key.LeftCtrl || key == Key.RightCtrl || key == Key.LeftAlt || key == Key.RightAlt)
-                _soundService.PlayModifier();
-            else
-                _soundService.PlayClick();
-        }
+        private void AnimateKeyPress(Border b) { if (b.RenderTransform is ScaleTransform st) { if (st.IsFrozen) b.RenderTransform = st.Clone(); st.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50))); st.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(50))); } }
+        private void AnimateKeyRelease(Border b) { if (b.RenderTransform is ScaleTransform st) { if (st.IsFrozen) b.RenderTransform = st.Clone(); var a = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut } }; st.BeginAnimation(ScaleTransform.ScaleXProperty, a); st.BeginAnimation(ScaleTransform.ScaleYProperty, a); } }
+        private void PlaySoundForKey(Key k) { if (k == Key.Space || k == Key.Return || k == Key.Back || k == Key.LeftShift || k == Key.RightShift || k == Key.Capital || k == Key.Tab || k == Key.LeftCtrl || k == Key.RightCtrl || k == Key.LeftAlt || k == Key.RightAlt) _soundService.PlayModifier(); else _soundService.PlayClick(); }
 
         private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
         private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
-
-        private void KeyboardHookService_KeyDown(object sender, Key e)
-        {
-            if (_isSimulating) return;
-            Dispatcher.Invoke(() =>
-            {
-                PlaySoundForKey(e);
-                HighlightKey(e, true);
-            });
-        }
-
-        private void KeyboardHookService_KeyUp(object sender, Key e)
-        {
-            if (_isSimulating) return;
-            Dispatcher.Invoke(() => HighlightKey(e, false));
-        }
-
-        private void HighlightKey(Key key, bool isPressed)
-        {
-            if (key == Key.Capital || key == Key.LeftShift || key == Key.RightShift) return;
-            if (_wpfKeyToBorderMap.TryGetValue(key, out Border border))
-            {
-                if (isPressed)
-                {
-                    border.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor");
-                    AnimateKeyPress(border);
-                }
-                else
-                {
-                    border.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor");
-                    AnimateKeyRelease(border);
-                }
-            }
-        }
+        private void KeyboardHookService_KeyDown(object sender, Key e) { if (_isSimulating) return; Dispatcher.Invoke(() => { PlaySoundForKey(e); HighlightKey(e, true); }); }
+        private void KeyboardHookService_KeyUp(object sender, Key e) { if (_isSimulating) return; Dispatcher.Invoke(() => HighlightKey(e, false)); }
+        private void HighlightKey(Key k, bool p) { if (k == Key.Capital || k == Key.LeftShift || k == Key.RightShift) return; if (_wpfKeyToBorderMap.TryGetValue(k, out Border b)) { if (p) { b.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor"); AnimateKeyPress(b); } else { b.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor"); AnimateKeyRelease(b); } } }
         #endregion
 
-        #region UI Logic
-        private void MenuToggleButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is System.Windows.Controls.Primitives.ToggleButton toggleButton)
-            {
-                if (toggleButton.IsChecked == true && toggleButton.ContextMenu != null)
-                {
-                    toggleButton.ContextMenu.PlacementTarget = toggleButton;
-                    toggleButton.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-                    toggleButton.ContextMenu.IsOpen = true;
-                }
-                else if (toggleButton.ContextMenu != null) toggleButton.ContextMenu.IsOpen = false;
-            }
-        }
-
-        private void MainMenu_Closed(object sender, RoutedEventArgs e)
-        {
-            if (sender is ContextMenu menu && menu.PlacementTarget is System.Windows.Controls.Primitives.ToggleButton toggleButton)
-                toggleButton.IsChecked = false;
-        }
-
-        private void Opacity_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double o))
-            {
-                MainBorder.Opacity = o;
-                Properties.Settings.Default.Opacity = o;
-                Properties.Settings.Default.Save();
-            }
-        }
-
-        private void Zoom_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string t && double.TryParse(t, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double f))
-            {
-                var duration = TimeSpan.FromMilliseconds(400);
-                var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(f, duration) { EasingFunction = ease });
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(f, duration) { EasingFunction = ease });
-
-                Properties.Settings.Default.Zoom = f;
-                Properties.Settings.Default.Save();
-            }
-        }
-
-        private void Theme_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string th)
-            {
-                ApplyTheme(th);
-                Properties.Settings.Default.Theme = th;
-                Properties.Settings.Default.Save();
-            }
-        }
-
-        private void SoundToggle_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi)
-            {
-                _soundService.IsEnabled = mi.IsChecked;
-                Properties.Settings.Default.SoundEnabled = mi.IsChecked;
-                Properties.Settings.Default.Save();
-            }
-        }
-
-        private void CloseMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            this.Hide();
-        }
-
-        // Doble clic en el icono del reloj -> Restaurar ventana
-        private void NotifyIcon_DoubleClick(object sender, RoutedEventArgs e)
-        {
-            ShowAndRestoreWindow();
-        }
-
-        // Clic en "Show Keyboard" del menú del reloj
-        private void NotifyIcon_Open_Click(object sender, RoutedEventArgs e)
-        {
-            ShowAndRestoreWindow();
-        }
-
-        // Clic en "Exit" del menú del reloj -> CERRAR DE VERDAD
-        private void NotifyIcon_Exit_Click(object sender, RoutedEventArgs e)
-        {
-            // Cerramos la aplicación completamente
-            Application.Current.Shutdown();
-        }
-
-        // Método auxiliar para restaurar la ventana si está minimizada u oculta
-        private void ShowAndRestoreWindow()
-        {
-            this.Show();
-            this.WindowState = WindowState.Normal;
-            this.Activate();
-
-            // Restaurar opacidad y animaciones si venimos de minimizado
-            MainBorder.BeginAnimation(Border.OpacityProperty, null);
-            MainBorder.Opacity = Properties.Settings.Default.Opacity > 0.1 ? Properties.Settings.Default.Opacity : 1.0;
-
-            WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            double zoom = Properties.Settings.Default.Zoom > 0.1 ? Properties.Settings.Default.Zoom : 1.0;
-            WindowScaleTransform.ScaleX = zoom;
-            WindowScaleTransform.ScaleY = zoom;
-        }
-
-        private void LoadThemeResources(string themeName)
-        {
-            string fileName;
-            WindowBlur.EnableBlur(this, false);
-            if (themeName == "System") { var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1); fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml"; }
-            else if (themeName == "LiquidGlass") { fileName = "LiquidGlassTheme.xaml"; WindowBlur.EnableBlur(this, true); }
-            else if (themeName == "Light") fileName = "LightTheme.xaml"; else fileName = "DarkTheme.xaml";
-            var u = new Uri($"Themes/{fileName}", UriKind.Relative);
-            var s = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
-            var t = new ResourceDictionary { Source = u };
-            Application.Current.Resources.MergedDictionaries.Clear(); Application.Current.Resources.MergedDictionaries.Add(s); Application.Current.Resources.MergedDictionaries.Add(t);
-        }
-
+        #region Theme & Tray
         private void ApplyTheme(string themeName)
         {
             try
             {
-                if (MainBorder.ActualWidth > 0 && MainBorder.ActualHeight > 0)
+                if (MainBorder.ActualWidth > 0)
                 {
-                    // 1. Captura "Visual" del estado actual (usando VisualBrush en lugar de RenderTargetBitmap)
-                    var visualBrush = new VisualBrush(MainBorder)
-                    {
-                        Stretch = Stretch.None,
-                        TileMode = TileMode.None,
-                        AlignmentX = AlignmentX.Left,
-                        AlignmentY = AlignmentY.Top
-                    };
-
-                    // CORREGIDO: Usamos TransitionVisual (Rectangle), no TransitionImage
-                    TransitionVisual.Fill = visualBrush;
+                    // Capturar el estado actual antes de cambiar el tema
+                    TransitionVisual.Fill = new VisualBrush(MainBorder) { Stretch = Stretch.None };
                     TransitionOverlay.Visibility = Visibility.Visible;
                 }
 
-                // 2. Cargar nuevo tema
                 LoadThemeResources(themeName);
 
-                // 3. Animación de barrido
                 if (TransitionOverlay.Visibility == Visibility.Visible)
                 {
-                    var maskBrush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
-                    var stopTransparent = new GradientStop(Colors.Transparent, -0.2);
-                    var stopBlack = new GradientStop(Colors.Black, -0.1);
-                    maskBrush.GradientStops.Add(stopTransparent); maskBrush.GradientStops.Add(stopBlack);
-                    TransitionVisual.OpacityMask = maskBrush;
+                    var mask = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
+                    var s1 = new GradientStop(Colors.Transparent, -0.2);
+                    var s2 = new GradientStop(Colors.Black, -0.1);
+                    mask.GradientStops.Add(s1);
+                    mask.GradientStops.Add(s2);
+                    TransitionVisual.OpacityMask = mask;
 
-                    var duration = TimeSpan.FromMilliseconds(800);
+                    var dur = TimeSpan.FromMilliseconds(800);
                     var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
 
-                    stopTransparent.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-                    stopBlack.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.1, duration) { EasingFunction = ease });
+                    s1.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.0, dur) { EasingFunction = ease });
+                    s2.BeginAnimation(GradientStop.OffsetProperty, new DoubleAnimation(1.1, dur) { EasingFunction = ease });
 
                     TransitionGlassWave.Opacity = 0.8;
-                    var waveAnim = new DoubleAnimation(-TransitionGlassWave.Width, 1100, duration) { EasingFunction = ease };
-                    GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, waveAnim);
+                    // Animamos la onda desde bien afuera (-150) hasta bien afuera (1200)
+                    var wAnim = new DoubleAnimation(-150, 1200, dur) { EasingFunction = ease };
 
-                    waveAnim.Completed += (s, args) => { TransitionOverlay.Visibility = Visibility.Collapsed; TransitionVisual.Fill = null; TransitionVisual.OpacityMask = null; GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, null); GlassWaveTranslate.X = -100; };
+                    wAnim.Completed += (s, a) =>
+                    {
+                        // LIMPIEZA TOTAL:
+                        TransitionOverlay.Visibility = Visibility.Collapsed;
+                        TransitionVisual.Fill = null;
+                        TransitionVisual.OpacityMask = null;
+                        // Detener animaciones para que no consuman recursos ni se vean
+                        GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+                        TransitionGlassWave.BeginAnimation(Border.OpacityProperty, null);
+                    };
+
+                    GlassWaveTranslate.BeginAnimation(TranslateTransform.XProperty, wAnim);
                 }
             }
-            catch (Exception ex) { MessageBox.Show($"Error applying theme: {ex.Message}"); }
+            catch { }
+        }
+
+        private void LoadThemeResources(string themeName)
+        {
+            string fileName; EnableBlur(themeName == "LiquidGlass");
+            if (themeName == "System") { var v = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1); fileName = (v != null && (int)v == 1) ? "LightTheme.xaml" : "DarkTheme.xaml"; }
+            else if (themeName == "LiquidGlass") fileName = "LiquidGlassTheme.xaml";
+            else if (themeName == "Light") fileName = "LightTheme.xaml"; else fileName = "DarkTheme.xaml";
+            var s = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
+            var t = new ResourceDictionary { Source = new Uri($"Themes/{fileName}", UriKind.Relative) };
+            Application.Current.Resources.MergedDictionaries.Clear(); Application.Current.Resources.MergedDictionaries.Add(s); Application.Current.Resources.MergedDictionaries.Add(t);
+        }
+
+        private void EnableBlur(bool enable)
+        {
+            var helper = new WindowInteropHelper(this);
+            var accent = new AccentPolicy { AccentState = enable ? 3 : 0 };
+            var accentSize = Marshal.SizeOf(accent);
+            var accentPtr = Marshal.AllocHGlobal(accentSize);
+            Marshal.StructureToPtr(accent, accentPtr, false);
+            var data = new WindowCompositionAttributeData { Attribute = 19, SizeOfData = accentSize, Data = accentPtr };
+            SetWindowCompositionAttribute(helper.Handle, ref data);
+            Marshal.FreeHGlobal(accentPtr);
         }
 
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) { if (e.Category == UserPreferenceCategory.General) Dispatcher.Invoke(() => ApplyTheme("System")); }
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed && !e.Handled) DragMove(); }
 
-        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e)
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            var duration = TimeSpan.FromMilliseconds(500); var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
-            var scaleX = new DoubleAnimation(0.1, duration) { EasingFunction = ease }; var scaleY = new DoubleAnimation(0.1, duration) { EasingFunction = ease }; var fade = new DoubleAnimation(0, duration) { EasingFunction = ease };
-            var sb = new Storyboard();
-            Storyboard.SetTargetName(scaleX, "WindowScaleTransform"); Storyboard.SetTargetProperty(scaleX, new PropertyPath(ScaleTransform.ScaleXProperty));
-            Storyboard.SetTargetName(scaleY, "WindowScaleTransform"); Storyboard.SetTargetProperty(scaleY, new PropertyPath(ScaleTransform.ScaleYProperty));
-            Storyboard.SetTarget(fade, MainBorder); Storyboard.SetTargetProperty(fade, new PropertyPath(Border.OpacityProperty));
-            sb.Children.Add(scaleX); sb.Children.Add(scaleY); sb.Children.Add(fade);
-            sb.Completed += (s, args) => { WindowState = WindowState.Minimized; sb.Stop(this); WindowScaleTransform.ScaleX = 1.0; WindowScaleTransform.ScaleY = 1.0; MainBorder.Opacity = 1.0; };
-            sb.Begin(this);
-        }
-        private void CloseButton_Click(object sender, MouseButtonEventArgs e)
-        {
-            this.Hide(); // Ocultar en lugar de cerrar
-            // Opcional: Mostrar una notificación tipo "Globo" diciendo que la app sigue activa
-        }
-
-        private void StartupToggle_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi)
+            Point p = e.GetPosition(this);
+            // Solo DragMove si no estamos en el margen de redimensionado
+            if (p.X > 10 && p.X < ActualWidth - 10 && p.Y > 10 && p.Y < ActualHeight - 10)
             {
-                SetStartup(mi.IsChecked);
-            }
-        }
-
-        private void SetStartup(bool enable)
-        {
-            const string appName = "MacKeyboardWindows";
-            // Ruta completa al ejecutable actual
-            string exePath = Process.GetCurrentProcess().MainModule.FileName;
-
-            // Abrimos la clave del registro donde Windows busca programas de inicio
-            using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
-            {
-                if (enable)
+                if (e.ButtonState == MouseButtonState.Pressed)
                 {
-                    // Añadir al registro
-                    rk.SetValue(appName, exePath);
-                }
-                else
-                {
-                    // Quitar del registro
-                    rk.DeleteValue(appName, false);
+                    try { this.DragMove(); } catch { }
                 }
             }
         }
 
-        private bool IsStartupEnabled()
-        {
-            const string appName = "MacKeyboardWindows";
-            using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
-            {
-                // Comprobar si existe el valor
-                return rk.GetValue(appName) != null;
-            }
-        }
-
+        private void MenuToggleButton_Click(object sender, RoutedEventArgs e) { if (sender is System.Windows.Controls.Primitives.ToggleButton tb && tb.IsChecked == true && tb.ContextMenu != null) { tb.ContextMenu.PlacementTarget = tb; tb.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom; tb.ContextMenu.IsOpen = true; } }
+        private void MainMenu_Closed(object sender, RoutedEventArgs e) { if (sender is ContextMenu m && m.PlacementTarget is System.Windows.Controls.Primitives.ToggleButton tb) tb.IsChecked = false; }
+        private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) { ApplyTheme(th); Properties.Settings.Default.Theme = th; Properties.Settings.Default.Save(); } }
+        private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) { _soundService.IsEnabled = mi.IsChecked; Properties.Settings.Default.SoundEnabled = mi.IsChecked; Properties.Settings.Default.Save(); } }
+        private void Layout_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string l) { LoadLayout(l); Properties.Settings.Default.Layout = l; Properties.Settings.Default.Save(); } }
+        private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => this.Hide();
+        private void NotifyIcon_DoubleClick(object sender, RoutedEventArgs e) => ShowAndRestoreWindow();
+        private void NotifyIcon_Open_Click(object sender, RoutedEventArgs e) => ShowAndRestoreWindow();
+        private void NotifyIcon_Exit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
+        private void ShowAndRestoreWindow() { this.Show(); this.WindowState = WindowState.Normal; this.Activate(); ApplyZoom(Properties.Settings.Default.Zoom, false); }
+        private void MinimizeButton_Click(object sender, MouseButtonEventArgs e) { WindowState = WindowState.Minimized; }
+        private void CloseButton_Click(object sender, MouseButtonEventArgs e) => this.Hide();
+        private void StartupToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) SetStartup(mi.IsChecked); }
+        private void SetStartup(bool enable) { try { using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)) { if (enable) rk.SetValue("MacKeyboardWindows", Process.GetCurrentProcess().MainModule.FileName); else rk.DeleteValue("MacKeyboardWindows", false); } } catch { } }
+        private bool IsStartupEnabled() { using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)) return rk.GetValue("MacKeyboardWindows") != null; }
         #endregion
 
-        #region Window Blur Class
-        internal static class WindowBlur
+        #region Keyboard State
+        private bool IsCapsLocked() => (GetKeyState(VK_CAPITAL) & 1) != 0;
+        private bool IsShiftPressed() => (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        private void UpdateKeyboardState()
         {
-            [DllImport("user32.dll")] internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-            [StructLayout(LayoutKind.Sequential)] internal struct WindowCompositionAttributeData { public WindowCompositionAttribute Attribute; public IntPtr Data; public int SizeOfData; }
-            internal enum WindowCompositionAttribute { WCA_ACCENT_POLICY = 19 }
-            internal enum AccentState { ACCENT_DISABLED = 0, ACCENT_ENABLE_BLURBEHIND = 3, ACCENT_ENABLE_ACRYLICBLURBEHIND = 4 }
-            [StructLayout(LayoutKind.Sequential)] internal struct AccentPolicy { public AccentState AccentState; public int AccentFlags; public int GradientColor; public int AnimationId; }
-            public static void EnableBlur(Window window, bool enable)
-            {
-                var windowHelper = new WindowInteropHelper(window);
-                if (windowHelper.Handle == IntPtr.Zero) return;
-                var accent = new AccentPolicy { AccentState = enable ? AccentState.ACCENT_ENABLE_BLURBEHIND : AccentState.ACCENT_DISABLED, GradientColor = 0 };
-                var accentStructSize = Marshal.SizeOf(accent);
-                var accentPtr = Marshal.AllocHGlobal(accentStructSize);
-                Marshal.StructureToPtr(accent, accentPtr, false);
-                var data = new WindowCompositionAttributeData { Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY, SizeOfData = accentStructSize, Data = accentPtr };
-                SetWindowCompositionAttribute(windowHelper.Handle, ref data);
-                Marshal.FreeHGlobal(accentPtr);
-            }
+            bool caps = IsCapsLocked(); bool shift = IsShiftPressed(); bool upper = caps ^ shift;
+            foreach (var (tb, km) in _letterKeys) tb.Text = upper ? km.DisplayText.ToUpper() : km.DisplayText.ToLower();
+            foreach (var (tb, km) in _symbolKeys) tb.Text = shift ? km.ShiftDisplayText : km.DisplayText;
+            if (_capsLockBorder != null) _capsLockBorder.Background = caps ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
+            if (_leftShiftBorder != null) _leftShiftBorder.Background = shift ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
+            if (_rightShiftBorder != null) _rightShiftBorder.Background = shift ? (Brush)FindResource("KeyBackgroundPressedColor") : (Brush)FindResource("KeyBackgroundColor");
         }
         #endregion
     }
