@@ -148,7 +148,7 @@
 
                             <!-- TITLE -->
                             <TextBlock Grid.Column="1" 
-                                       Text="Mac Keyboard" 
+                                       Text="LiquidKeys" 
                                        Foreground="{DynamicResource KeyForegroundColor}" 
                                        FontFamily="./Fonts/#Inter" 
                                        FontSize="12" 
