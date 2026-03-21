@@ -88,9 +88,6 @@
                     CornerRadius="12" 
                     BorderBrush="{DynamicResource WindowBorderColor}" 
                     BorderThickness="1">
-                    <Border.LayoutTransform>
-                        <ScaleTransform x:Name="WindowScaleTransform" ScaleX="1.0" ScaleY="1.0" />
-                    </Border.LayoutTransform>
                     <Grid>
                         <!-- ... contenido del teclado ... -->
                         <Grid.RowDefinitions>
@@ -126,6 +123,7 @@
                                         <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                                         <!-- ZOOM -->
                                         <MenuItem Header="Zoom">
+                                            <MenuItem Header="50%" Tag="0.5" Click="Zoom_Click"/>
                                             <MenuItem Header="75%" Tag="0.75" Click="Zoom_Click"/>
                                             <MenuItem Header="100%" Tag="1.0" Click="Zoom_Click"/>
                                             <MenuItem Header="125%" Tag="1.25" Click="Zoom_Click"/>

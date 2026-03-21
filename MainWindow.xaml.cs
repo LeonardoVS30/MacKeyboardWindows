@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -132,29 +132,43 @@ namespace MacKeyboardWindows
             source.AddHook(WndProc);
         }
 
+        // Constantes de WM_SIZING wParam (borde/esquina que se arrastra)
+        private const int WMSZ_LEFT = 1;
+        private const int WMSZ_RIGHT = 2;
+        private const int WMSZ_TOP = 3;
+        private const int WMSZ_TOPLEFT = 4;
+        private const int WMSZ_TOPRIGHT = 5;
+        private const int WMSZ_BOTTOM = 6;
+        private const int WMSZ_BOTTOMLEFT = 7;
+        private const int WMSZ_BOTTOMRIGHT = 8;
+
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            // Solo necesitamos WM_SIZING. WindowChrome se encarga del resto.
             if (msg == WM_SIZING)
             {
                 RECT rect = (RECT)Marshal.PtrToStructure(lParam, typeof(RECT));
+                int edge = wParam.ToInt32();
 
                 int width = rect.Right - rect.Left;
-
-                // Calcular altura proporcional
                 int newHeight = (int)(width / ASPECT_RATIO);
 
-                // Ajustar el borde inferior según el ancho
-                rect.Bottom = rect.Top + newHeight;
+                // Ajustar el borde correcto según desde dónde se arrastra
+                if (edge == WMSZ_TOP || edge == WMSZ_TOPLEFT || edge == WMSZ_TOPRIGHT)
+                {
+                    // Arrastrar desde arriba: Bottom se queda fijo, Top se ajusta
+                    rect.Top = rect.Bottom - newHeight;
+                }
+                else
+                {
+                    // Arrastrar desde abajo o los lados: Top se queda fijo, Bottom se ajusta
+                    rect.Bottom = rect.Top + newHeight;
+                }
 
                 Marshal.StructureToPtr(rect, lParam, true);
 
-                // Actualizar zoom basado en el ancho
                 double factor = width / 1100.0;
                 Properties.Settings.Default.Zoom = factor;
                 Properties.Settings.Default.Save();
-
-                // No marcamos como handled para que Windows termine de redimensionar la ventana
             }
             return IntPtr.Zero;
         }
@@ -194,11 +208,7 @@ namespace MacKeyboardWindows
                 var duration = TimeSpan.FromMilliseconds(400);
                 var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
 
-                // Animación de escala interna
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(factor, duration) { EasingFunction = ease });
-                WindowScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(factor, duration) { EasingFunction = ease });
-
-                // Animación de tamaño de ventana
+                // Solo animamos el tamaño de ventana; el Viewbox se encarga de escalar el contenido
                 this.BeginAnimation(Window.WidthProperty, new DoubleAnimation(targetWidth, duration) { EasingFunction = ease });
                 var hAnim = new DoubleAnimation(targetHeight, duration) { EasingFunction = ease };
                 hAnim.Completed += (s, e) => _isInternalScaling = false;
@@ -206,8 +216,6 @@ namespace MacKeyboardWindows
             }
             else
             {
-                WindowScaleTransform.ScaleX = factor;
-                WindowScaleTransform.ScaleY = factor;
                 this.Width = targetWidth;
                 this.Height = targetHeight;
                 _isInternalScaling = false;
