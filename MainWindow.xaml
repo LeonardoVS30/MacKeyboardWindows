@@ -146,16 +146,28 @@
                                 </ToggleButton.ContextMenu>
                             </ToggleButton>
 
-                            <!-- TITLE -->
-                            <TextBlock Grid.Column="1" 
-                                       Text="LiquidKeys" 
-                                       Foreground="{DynamicResource KeyForegroundColor}" 
-                                       FontFamily="./Fonts/#Inter" 
-                                       FontSize="12" 
-                                       FontWeight="SemiBold"
-                                       Opacity="0.5"
-                                       HorizontalAlignment="Center" 
-                                       VerticalAlignment="Center"/>
+                            <!-- MODE TOGGLE SWITCH -->
+                            <Border Grid.Column="1" Style="{StaticResource ModeToggleContainerStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="KeyboardModeToggle" 
+                                                 Style="{StaticResource ModeToggleButtonStyle}" 
+                                                 GroupName="ModeToggle" 
+                                                 IsChecked="True" 
+                                                 Checked="KeyboardModeToggle_Checked">
+                                        <Path Data="{StaticResource IconKeyboard}" 
+                                              Fill="{DynamicResource KeyForegroundColor}" 
+                                              Stretch="Uniform" Width="16" Height="16"/>
+                                    </RadioButton>
+                                    <RadioButton x:Name="PianoModeToggle" 
+                                                 Style="{StaticResource ModeToggleButtonStyle}" 
+                                                 GroupName="ModeToggle" 
+                                                 Checked="PianoModeToggle_Checked">
+                                        <Path Data="{StaticResource IconPiano}" 
+                                              Fill="{DynamicResource KeyForegroundColor}" 
+                                              Stretch="Uniform" Width="16" Height="16"/>
+                                    </RadioButton>
+                                </StackPanel>
+                            </Border>
 
                             <!-- WINDOW BUTTONS -->
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -168,6 +180,7 @@
                             </StackPanel>
                         </Grid>
                         <Grid x:Name="KeyboardContainer" Grid.Row="1" Margin="5,0,5,10" />
+                        <Grid x:Name="PianoContainer" Grid.Row="1" Margin="5,0,5,10" Visibility="Collapsed" />
 
                     </Grid>
                 </Border>
