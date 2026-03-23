@@ -71,7 +71,7 @@ namespace MacKeyboardWindows
         private bool _isSimulating = false;
         private string _currentLayout = "ES";
         private string _currentMode = "Keyboard";
-        private bool _pianoBuilt = false;
+        private string _currentScale = "C_Major";
 
         // Mapeo de teclas WPF a Borders del piano para resaltado por hook
         private readonly Dictionary<Key, Border> _pianoKeyToBorderMap = new Dictionary<Key, Border>();
@@ -122,6 +122,9 @@ namespace MacKeyboardWindows
             LoadLayout(_currentLayout);
             if (!string.IsNullOrEmpty(settings.Theme)) ApplyTheme(settings.Theme);
             if (StartupMenuItem != null) StartupMenuItem.IsChecked = IsStartupEnabled();
+
+            // Restaurar escala guardada
+            if (!string.IsNullOrEmpty(settings.Scale)) _currentScale = settings.Scale;
 
             // Restaurar modo guardado
             string savedMode = settings.Mode;
@@ -430,6 +433,16 @@ namespace MacKeyboardWindows
         private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) { ApplyTheme(th); Properties.Settings.Default.Theme = th; Properties.Settings.Default.Save(); } }
         private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) { _soundService.IsEnabled = mi.IsChecked; Properties.Settings.Default.SoundEnabled = mi.IsChecked; Properties.Settings.Default.Save(); } }
         private void Layout_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string l) { LoadLayout(l); Properties.Settings.Default.Layout = l; Properties.Settings.Default.Save(); } }
+        private void Scale_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string s)
+            {
+                _currentScale = s;
+                BuildPianoUI();
+                Properties.Settings.Default.Scale = s;
+                Properties.Settings.Default.Save();
+            }
+        }
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => this.Hide();
         private void NotifyIcon_DoubleClick(object sender, RoutedEventArgs e) => ShowAndRestoreWindow();
         private void NotifyIcon_Open_Click(object sender, RoutedEventArgs e) => ShowAndRestoreWindow();
@@ -454,7 +467,7 @@ namespace MacKeyboardWindows
         {
             if (_currentMode == "Piano") return;
             _currentMode = "Piano";
-            if (!_pianoBuilt) { BuildPianoUI(); _pianoBuilt = true; }
+            BuildPianoUI();
             SwitchMode("Piano");
         }
 
@@ -488,102 +501,87 @@ namespace MacKeyboardWindows
             PianoContainer.Children.Clear();
             _pianoKeyToBorderMap.Clear();
 
-            var allKeys = PianoLayout.GetKeys();
-            var whiteKeys = allKeys.Where(k => !k.IsBlackKey).ToList();
-            var blackKeys = allKeys.Where(k => k.IsBlackKey).ToList();
+            var rows = PianoLayout.GetKeysByRow(_currentScale);
 
-            int whiteKeyCount = whiteKeys.Count;
-
-            // Use a Grid as the piano canvas
+            // Main grid: 4 filas, una por cada fila de teclado
             var pianoGrid = new Grid();
+            pianoGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Number row (1-¡)
+            pianoGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Q row
+            pianoGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // A row
+            pianoGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Z row
 
-            // White keys layer
-            var whiteKeysGrid = new Grid();
-            for (int i = 0; i < whiteKeyCount; i++)
-                whiteKeysGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            // Orden visual: fila 3 (numbers) arriba, fila 0 (Z) abajo
+            int[] visualOrder = { 3, 2, 1, 0 }; // rows[3]=1-¡, rows[2]=Q-U, rows[1]=A-J, rows[0]=Z-M
 
-            for (int i = 0; i < whiteKeyCount; i++)
+            for (int gridRow = 0; gridRow < 4; gridRow++)
             {
-                var pk = whiteKeys[i];
-                var border = new Border
-                {
-                    Style = (Style)FindResource("WhitePianoKeyStyle"),
-                    Tag = pk,
-                    RenderTransformOrigin = new Point(0.5, 1),
-                    RenderTransform = new ScaleTransform(1, 1)
-                };
+                var rowKeys = rows[visualOrder[gridRow]];
+                var rowGrid = new Grid();
 
-                // Octave label on C notes
-                if (pk.NoteName == "C")
+                for (int i = 0; i < rowKeys.Count; i++)
+                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                for (int i = 0; i < rowKeys.Count; i++)
                 {
-                    var label = new TextBlock
+                    var pk = rowKeys[i];
+                    bool isBlack = pk.IsBlackKey;
+
+                    // Cada tecla del piano muestra nota + atajo de teclado
+                    var noteLabel = new TextBlock
                     {
-                        Text = $"C{pk.Octave}",
-                        Style = (Style)FindResource("PianoOctaveLabelStyle")
+                        Text = $"{pk.NoteName}{pk.Octave}",
+                        FontFamily = new FontFamily("./Fonts/#Inter"),
+                        FontSize = 13,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = isBlack
+                            ? (Brush)FindResource("PianoWhiteKeyColor")
+                            : (Brush)FindResource("PianoBlackKeyColor"),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 0, 14)
                     };
-                    border.Child = label;
-                }
 
-                border.MouseLeftButtonDown += PianoKey_MouseLeftButtonDown;
-                border.MouseLeftButtonUp += PianoKey_MouseLeftButtonUp;
-                Grid.SetColumn(border, i);
-                whiteKeysGrid.Children.Add(border);
-                _pianoKeyToBorderMap[pk.WpfKey] = border;
-            }
-
-            pianoGrid.Children.Add(whiteKeysGrid);
-
-            // Black keys layer (Canvas overlaid on top)
-            var blackKeysCanvas = new Canvas { IsHitTestVisible = true };
-
-            // Calculate column width factor: total width is divided among white keys
-            // Black keys are positioned between specific white keys
-            pianoGrid.Children.Add(blackKeysCanvas);
-
-            // Position black keys after layout is computed
-            pianoGrid.SizeChanged += (s, e2) =>
-            {
-                blackKeysCanvas.Children.Clear();
-                if (whiteKeyCount == 0) return;
-
-                double totalWidth = pianoGrid.ActualWidth;
-                double totalHeight = pianoGrid.ActualHeight;
-                double whiteKeyWidth = totalWidth / whiteKeyCount;
-                double blackKeyWidth = whiteKeyWidth * 0.58;
-                double blackKeyHeight = totalHeight * 0.62;
-
-                // Map each black key to its position between white keys
-                int whiteIndex = 0;
-                for (int i = 0; i < allKeys.Count; i++)
-                {
-                    var key = allKeys[i];
-                    if (!key.IsBlackKey)
+                    var shortcutLabel = new TextBlock
                     {
-                        whiteIndex++;
-                        continue;
-                    }
+                        Text = pk.KeyLabel,
+                        FontFamily = new FontFamily("./Fonts/#Inter"),
+                        FontSize = 10,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = isBlack
+                            ? (Brush)FindResource("PianoWhiteKeyColor")
+                            : (Brush)FindResource("PianoBlackKeyColor"),
+                        Opacity = 0.5,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        Margin = new Thickness(0, 0, 0, 4)
+                    };
 
-                    // Black key sits between the previous white key and the next
-                    double xPos = (whiteIndex * whiteKeyWidth) - (blackKeyWidth / 2);
+                    var content = new Grid();
+                    content.Children.Add(noteLabel);
+                    content.Children.Add(shortcutLabel);
 
+                    string styleKey = isBlack ? "BlackPianoKeyStyle" : "WhitePianoKeyStyle";
                     var border = new Border
                     {
-                        Style = (Style)FindResource("BlackPianoKeyStyle"),
-                        Width = blackKeyWidth,
-                        Height = blackKeyHeight,
-                        Tag = key,
-                        RenderTransformOrigin = new Point(0.5, 0),
-                        RenderTransform = new ScaleTransform(1, 1)
+                        Style = (Style)FindResource(styleKey),
+                        Tag = pk,
+                        Child = content,
+                        RenderTransformOrigin = new Point(0.5, 0.5),
+                        RenderTransform = new ScaleTransform(1, 1),
+                        CornerRadius = new CornerRadius(5),
+                        Margin = new Thickness(2, 2, 2, 2)
                     };
+
                     border.MouseLeftButtonDown += PianoKey_MouseLeftButtonDown;
                     border.MouseLeftButtonUp += PianoKey_MouseLeftButtonUp;
-
-                    Canvas.SetLeft(border, xPos);
-                    Canvas.SetTop(border, 0);
-                    blackKeysCanvas.Children.Add(border);
-                    _pianoKeyToBorderMap[key.WpfKey] = border;
+                    Grid.SetColumn(border, i);
+                    rowGrid.Children.Add(border);
+                    _pianoKeyToBorderMap[pk.WpfKey] = border;
                 }
-            };
+
+                Grid.SetRow(rowGrid, gridRow);
+                pianoGrid.Children.Add(rowGrid);
+            }
 
             PianoContainer.Children.Add(pianoGrid);
         }

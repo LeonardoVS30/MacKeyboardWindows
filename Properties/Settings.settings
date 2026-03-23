@@ -20,5 +20,8 @@
     <Setting Name="Mode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Keyboard</Value>
     </Setting>
+    <Setting Name="Scale" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C_Major</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

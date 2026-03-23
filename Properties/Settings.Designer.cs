@@ -94,5 +94,17 @@ namespace MacKeyboardWindows.Properties {
                 this["Mode"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C_Major")]
+        public string Scale {
+            get {
+                return ((string)(this["Scale"]));
+            }
+            set {
+                this["Scale"] = value;
+            }
+        }
     }
 }

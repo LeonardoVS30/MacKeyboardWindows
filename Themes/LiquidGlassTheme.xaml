@@ -37,13 +37,19 @@
     <SolidColorBrush x:Key="KeyBackgroundPressedColor" Color="#60FFFFFF"/>
 
     <SolidColorBrush x:Key="MenuBackgroundColor" Color="#CC494949"/>
-    <!-- Piano & Toggle -->
-    <SolidColorBrush x:Key="PianoWhiteKeyColor" Color="#CCFFFFFF"/>
-    <SolidColorBrush x:Key="PianoBlackKeyColor" Color="#CC1A1A1A"/>
-    <SolidColorBrush x:Key="PianoWhiteKeyPressedColor" Color="#90FFFFFF"/>
-    <SolidColorBrush x:Key="PianoBlackKeyPressedColor" Color="#CC444444"/>
-    <SolidColorBrush x:Key="PianoLabelColor" Color="#80FFFFFF"/>
-    <SolidColorBrush x:Key="ModeToggleBackground" Color="#25FFFFFF"/>
-    <SolidColorBrush x:Key="ModeToggleSelectedBackground" Color="#50FFFFFF"/>
+    <!-- Piano & Toggle — Glassmorphism style -->
+    <LinearGradientBrush x:Key="PianoWhiteKeyColor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#35FFFFFF" Offset="0.0"/>
+        <GradientStop Color="#15FFFFFF" Offset="1.0"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PianoBlackKeyColor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#60000000" Offset="0.0"/>
+        <GradientStop Color="#90000000" Offset="1.0"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PianoWhiteKeyPressedColor" Color="#60FFFFFF"/>
+    <SolidColorBrush x:Key="PianoBlackKeyPressedColor" Color="#40FFFFFF"/>
+    <SolidColorBrush x:Key="PianoLabelColor" Color="#CCFFFFFF"/>
+    <SolidColorBrush x:Key="ModeToggleBackground" Color="#20FFFFFF"/>
+    <SolidColorBrush x:Key="ModeToggleSelectedBackground" Color="#45FFFFFF"/>
 
 </ResourceDictionary>

@@ -120,6 +120,27 @@
                                             <MenuItem Header="Español (ES)" Tag="ES" Click="Layout_Click"/>
                                             <MenuItem Header="English (US)" Tag="US" Click="Layout_Click"/>
                                         </MenuItem>
+                                        <!-- PIANO SCALE -->
+                                        <MenuItem Header="Piano Scale">
+                                            <MenuItem Header="Major" >
+                                                <MenuItem Header="C Major (Do Mayor)" Tag="C_Major" Click="Scale_Click"/>
+                                                <MenuItem Header="D Major (Re Mayor)" Tag="D_Major" Click="Scale_Click"/>
+                                                <MenuItem Header="E Major (Mi Mayor)" Tag="E_Major" Click="Scale_Click"/>
+                                                <MenuItem Header="F Major (Fa Mayor)" Tag="F_Major" Click="Scale_Click"/>
+                                                <MenuItem Header="G Major (Sol Mayor)" Tag="G_Major" Click="Scale_Click"/>
+                                                <MenuItem Header="A Major (La Mayor)" Tag="A_Major" Click="Scale_Click"/>
+                                                <MenuItem Header="B Major (Si Mayor)" Tag="B_Major" Click="Scale_Click"/>
+                                            </MenuItem>
+                                            <MenuItem Header="Minor">
+                                                <MenuItem Header="C Minor (Do Menor)" Tag="C_Minor" Click="Scale_Click"/>
+                                                <MenuItem Header="D Minor (Re Menor)" Tag="D_Minor" Click="Scale_Click"/>
+                                                <MenuItem Header="E Minor (Mi Menor)" Tag="E_Minor" Click="Scale_Click"/>
+                                                <MenuItem Header="F Minor (Fa Menor)" Tag="F_Minor" Click="Scale_Click"/>
+                                                <MenuItem Header="G Minor (Sol Menor)" Tag="G_Minor" Click="Scale_Click"/>
+                                                <MenuItem Header="A Minor (La Menor)" Tag="A_Minor" Click="Scale_Click"/>
+                                                <MenuItem Header="B Minor (Si Menor)" Tag="B_Minor" Click="Scale_Click"/>
+                                            </MenuItem>
+                                        </MenuItem>
                                         <Separator Style="{StaticResource AppMenuSeparatorStyle}"/>
                                         <!-- ZOOM -->
                                         <MenuItem Header="Zoom">
