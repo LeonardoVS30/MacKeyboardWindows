@@ -507,19 +507,21 @@ namespace MacKeyboardWindows
             foreach (var sk in scaleKeys)
                 scaleLookup[$"{sk.NoteName}{sk.Octave}"] = sk;
 
+            // Nota raíz de la escala (primer intervalo)
+            var scale = PianoScales.GetByName(_currentScale);
+            string rootNoteName = NoteNames.All[scale.Intervals[0] % 12];
+
             // Generar TODAS las notas cromáticas de C3 a G7
             var allNotes = new List<(string name, int octave, bool isBlack)>();
             for (int oct = 3; oct <= 6; oct++)
                 foreach (var n in NoteNames.All)
                     allNotes.Add((n, oct, NoteNames.IsBlack(n)));
-            // Octava 7 parcial: C C# D D# E F F# G
             foreach (var n in new[] { "C", "C#", "D", "D#", "E", "F", "F#", "G" })
                 allNotes.Add((n, 7, NoteNames.IsBlack(n)));
 
             var whiteNotes = allNotes.Where(n => !n.isBlack).ToList();
             int whiteKeyCount = whiteNotes.Count;
 
-            // Canvas principal del piano
             var pianoGrid = new Grid();
 
             // === CAPA 1: Teclas blancas ===
@@ -531,55 +533,26 @@ namespace MacKeyboardWindows
             {
                 var note = whiteNotes[i];
                 string noteId = $"{note.name}{note.octave}";
-                bool inScale = scaleLookup.TryGetValue(noteId, out PianoKeyModel pk);
+                scaleLookup.TryGetValue(noteId, out PianoKeyModel pk);
 
                 var border = new Border
                 {
                     Style = (Style)FindResource("WhitePianoKeyStyle"),
                     Tag = pk,
                     RenderTransformOrigin = new Point(0.5, 1),
-                    RenderTransform = new ScaleTransform(1, 1),
-                    Opacity = inScale ? 1.0 : 0.35,
-                    IsHitTestVisible = inScale
+                    RenderTransform = new ScaleTransform(1, 1)
                 };
 
-                // Contenido: nota + atajo de teclado
-                var content = new Grid();
-
-                if (inScale)
+                // Solo etiqueta en la nota raíz de la escala
+                if (note.name == rootNoteName)
                 {
-                    content.Children.Add(new TextBlock
+                    border.Child = new TextBlock
                     {
-                        Text = noteId,
-                        FontFamily = new FontFamily("./Fonts/#Inter"),
-                        FontSize = 11,
-                        FontWeight = FontWeights.SemiBold,
-                        Foreground = (Brush)FindResource("PianoBlackKeyColor"),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 0, 12)
-                    });
-                    content.Children.Add(new TextBlock
-                    {
-                        Text = pk.KeyLabel,
-                        FontFamily = new FontFamily("./Fonts/#Inter"),
-                        FontSize = 9,
-                        Foreground = (Brush)FindResource("PianoLabelColor"),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        Margin = new Thickness(0, 0, 0, 6)
-                    });
-                }
-                else if (note.name == "C")
-                {
-                    content.Children.Add(new TextBlock
-                    {
-                        Text = $"C{note.octave}",
+                        Text = $"{rootNoteName}{note.octave}",
                         Style = (Style)FindResource("PianoOctaveLabelStyle")
-                    });
+                    };
                 }
 
-                border.Child = content;
                 border.MouseLeftButtonDown += PianoKey_MouseLeftButtonDown;
                 border.MouseLeftButtonUp += PianoKey_MouseLeftButtonUp;
                 Grid.SetColumn(border, i);
@@ -595,7 +568,6 @@ namespace MacKeyboardWindows
             var blackKeysCanvas = new Canvas { IsHitTestVisible = true };
             pianoGrid.Children.Add(blackKeysCanvas);
 
-            // Posicionar las teclas negras cuando se conozca el tamaño
             pianoGrid.SizeChanged += (s, e2) =>
             {
                 blackKeysCanvas.Children.Clear();
@@ -618,7 +590,7 @@ namespace MacKeyboardWindows
                     }
 
                     string noteId = $"{note.name}{note.octave}";
-                    bool inScale = scaleLookup.TryGetValue(noteId, out PianoKeyModel pk);
+                    scaleLookup.TryGetValue(noteId, out PianoKeyModel pk);
 
                     double xPos = (whiteIndex * whiteKeyWidth) - (blackKeyWidth / 2);
 
@@ -629,38 +601,8 @@ namespace MacKeyboardWindows
                         Height = blackKeyHeight,
                         Tag = pk,
                         RenderTransformOrigin = new Point(0.5, 0),
-                        RenderTransform = new ScaleTransform(1, 1),
-                        Opacity = inScale ? 1.0 : 0.25,
-                        IsHitTestVisible = inScale
+                        RenderTransform = new ScaleTransform(1, 1)
                     };
-
-                    if (inScale)
-                    {
-                        var content = new Grid();
-                        content.Children.Add(new TextBlock
-                        {
-                            Text = noteId,
-                            FontFamily = new FontFamily("./Fonts/#Inter"),
-                            FontSize = 9,
-                            FontWeight = FontWeights.SemiBold,
-                            Foreground = Brushes.White,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            Margin = new Thickness(0, 0, 0, 10)
-                        });
-                        content.Children.Add(new TextBlock
-                        {
-                            Text = pk.KeyLabel,
-                            FontFamily = new FontFamily("./Fonts/#Inter"),
-                            FontSize = 8,
-                            Foreground = Brushes.White,
-                            Opacity = 0.6,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Bottom,
-                            Margin = new Thickness(0, 0, 0, 4)
-                        });
-                        border.Child = content;
-                    }
 
                     border.MouseLeftButtonDown += PianoKey_MouseLeftButtonDown;
                     border.MouseLeftButtonUp += PianoKey_MouseLeftButtonUp;
