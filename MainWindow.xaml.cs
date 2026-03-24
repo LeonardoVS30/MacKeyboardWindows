@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Linq;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using MacKeyboardWindows.Models;
@@ -69,6 +70,11 @@ namespace MacKeyboardWindows
         private Border _capsLockBorder, _leftShiftBorder, _rightShiftBorder;
         private bool _isSimulating = false;
         private string _currentLayout = "ES";
+        private string _currentMode = "Keyboard";
+        private string _currentScale = "C_Major";
+
+        // Mapeo de teclas WPF a Borders del piano para resaltado por hook
+        private readonly Dictionary<Key, Border> _pianoKeyToBorderMap = new Dictionary<Key, Border>();
 
         // Parámetros de diseño y redimensionado
         private const double DesignWidth = 1100.0;
@@ -116,6 +122,17 @@ namespace MacKeyboardWindows
             LoadLayout(_currentLayout);
             if (!string.IsNullOrEmpty(settings.Theme)) ApplyTheme(settings.Theme);
             if (StartupMenuItem != null) StartupMenuItem.IsChecked = IsStartupEnabled();
+
+            // Restaurar escala guardada
+            if (!string.IsNullOrEmpty(settings.Scale)) _currentScale = settings.Scale;
+
+            // Restaurar modo guardado
+            string savedMode = settings.Mode;
+            if (savedMode == "Piano")
+            {
+                _currentMode = "Piano";
+                PianoModeToggle.IsChecked = true;
+            }
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -318,8 +335,8 @@ namespace MacKeyboardWindows
 
         private void StartKeyboardHook() { _keyboardHookService.KeyDown += KeyboardHookService_KeyDown; _keyboardHookService.KeyUp += KeyboardHookService_KeyUp; _keyboardHookService.Start(); }
         private void StopKeyboardHook() { _keyboardHookService.KeyDown -= KeyboardHookService_KeyDown; _keyboardHookService.KeyUp -= KeyboardHookService_KeyUp; _keyboardHookService.Stop(); }
-        private void KeyboardHookService_KeyDown(object sender, Key e) { if (_isSimulating) return; Dispatcher.Invoke(() => { PlaySoundForKey(e); HighlightKey(e, true); }); }
-        private void KeyboardHookService_KeyUp(object sender, Key e) { if (_isSimulating) return; Dispatcher.Invoke(() => HighlightKey(e, false)); }
+        private void KeyboardHookService_KeyDown(object sender, Key e) { if (_isSimulating) return; Dispatcher.Invoke(() => { PlaySoundForKey(e); HighlightKey(e, true); HighlightPianoKey(e, true); }); }
+        private void KeyboardHookService_KeyUp(object sender, Key e) { if (_isSimulating) return; Dispatcher.Invoke(() => { HighlightKey(e, false); HighlightPianoKey(e, false); }); }
         private void HighlightKey(Key k, bool p) { if (k == Key.Capital || k == Key.LeftShift || k == Key.RightShift) return; if (_wpfKeyToBorderMap.TryGetValue(k, out Border b)) { if (p) { b.Background = (SolidColorBrush)FindResource("KeyBackgroundPressedColor"); AnimateKeyPress(b); } else { b.SetResourceReference(Border.BackgroundProperty, "KeyBackgroundColor"); AnimateKeyRelease(b); } } }
         #endregion
 
@@ -416,6 +433,16 @@ namespace MacKeyboardWindows
         private void Theme_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string th) { ApplyTheme(th); Properties.Settings.Default.Theme = th; Properties.Settings.Default.Save(); } }
         private void SoundToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) { _soundService.IsEnabled = mi.IsChecked; Properties.Settings.Default.SoundEnabled = mi.IsChecked; Properties.Settings.Default.Save(); } }
         private void Layout_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi && mi.Tag is string l) { LoadLayout(l); Properties.Settings.Default.Layout = l; Properties.Settings.Default.Save(); } }
+        private void Scale_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string s)
+            {
+                _currentScale = s;
+                BuildPianoUI();
+                Properties.Settings.Default.Scale = s;
+                Properties.Settings.Default.Save();
+            }
+        }
         private void CloseMenuItem_Click(object sender, RoutedEventArgs e) => this.Hide();
         private void NotifyIcon_DoubleClick(object sender, RoutedEventArgs e) => ShowAndRestoreWindow();
         private void NotifyIcon_Open_Click(object sender, RoutedEventArgs e) => ShowAndRestoreWindow();
@@ -426,6 +453,224 @@ namespace MacKeyboardWindows
         private void StartupToggle_Click(object sender, RoutedEventArgs e) { if (sender is MenuItem mi) SetStartup(mi.IsChecked); }
         private void SetStartup(bool enable) { try { using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)) { if (enable) rk.SetValue("MacKeyboardWindows", Process.GetCurrentProcess().MainModule.FileName); else rk.DeleteValue("MacKeyboardWindows", false); } } catch { } }
         private bool IsStartupEnabled() { using (RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)) return rk.GetValue("MacKeyboardWindows") != null; }
+        #endregion
+
+        #region Mode Toggle
+        private void KeyboardModeToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_currentMode == "Keyboard") return;
+            _currentMode = "Keyboard";
+            SwitchMode("Keyboard");
+        }
+
+        private void PianoModeToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_currentMode == "Piano") return;
+            _currentMode = "Piano";
+            BuildPianoUI();
+            SwitchMode("Piano");
+        }
+
+        private void SwitchMode(string mode)
+        {
+            var showContainer = mode == "Piano" ? PianoContainer : KeyboardContainer;
+            var hideContainer = mode == "Piano" ? KeyboardContainer : PianoContainer;
+
+            // Animated cross-fade transition
+            var duration = TimeSpan.FromMilliseconds(250);
+            var ease = new QuinticEase { EasingMode = EasingMode.EaseInOut };
+
+            var fadeOut = new DoubleAnimation(1, 0, duration) { EasingFunction = ease };
+            fadeOut.Completed += (s, a) =>
+            {
+                hideContainer.Visibility = Visibility.Collapsed;
+                showContainer.Opacity = 0;
+                showContainer.Visibility = Visibility.Visible;
+                showContainer.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = ease });
+            };
+            hideContainer.BeginAnimation(OpacityProperty, fadeOut);
+
+            Properties.Settings.Default.Mode = mode;
+            Properties.Settings.Default.Save();
+        }
+        #endregion
+
+        #region Piano UI Construction
+        private void BuildPianoUI()
+        {
+            PianoContainer.Children.Clear();
+            _pianoKeyToBorderMap.Clear();
+
+            // Obtener notas de la escala con sus atajos de teclado
+            var scaleKeys = PianoLayout.GetKeys(_currentScale);
+            var scaleLookup = new Dictionary<string, PianoKeyModel>();
+            foreach (var sk in scaleKeys)
+                scaleLookup[$"{sk.NoteName}{sk.Octave}"] = sk;
+
+            // Nota raíz de la escala (primer intervalo)
+            var scale = PianoScales.GetByName(_currentScale);
+            string rootNoteName = NoteNames.All[scale.Intervals[0] % 12];
+
+            // Generar TODAS las notas cromáticas de C3 a G7
+            var allNotes = new List<(string name, int octave, bool isBlack)>();
+            for (int oct = 3; oct <= 6; oct++)
+                foreach (var n in NoteNames.All)
+                    allNotes.Add((n, oct, NoteNames.IsBlack(n)));
+            foreach (var n in new[] { "C", "C#", "D", "D#", "E", "F", "F#", "G" })
+                allNotes.Add((n, 7, NoteNames.IsBlack(n)));
+
+            var whiteNotes = allNotes.Where(n => !n.isBlack).ToList();
+            int whiteKeyCount = whiteNotes.Count;
+
+            var pianoGrid = new Grid();
+
+            // === CAPA 1: Teclas blancas ===
+            var whiteKeysGrid = new Grid();
+            for (int i = 0; i < whiteKeyCount; i++)
+                whiteKeysGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            for (int i = 0; i < whiteKeyCount; i++)
+            {
+                var note = whiteNotes[i];
+                string noteId = $"{note.name}{note.octave}";
+                scaleLookup.TryGetValue(noteId, out PianoKeyModel pk);
+
+                var border = new Border
+                {
+                    Style = (Style)FindResource("WhitePianoKeyStyle"),
+                    Tag = pk,
+                    RenderTransformOrigin = new Point(0.5, 1),
+                    RenderTransform = new ScaleTransform(1, 1)
+                };
+
+                // Solo etiqueta en la nota raíz de la escala
+                if (note.name == rootNoteName)
+                {
+                    border.Child = new TextBlock
+                    {
+                        Text = $"{rootNoteName}{note.octave}",
+                        Style = (Style)FindResource("PianoOctaveLabelStyle")
+                    };
+                }
+
+                border.MouseLeftButtonDown += PianoKey_MouseLeftButtonDown;
+                border.MouseLeftButtonUp += PianoKey_MouseLeftButtonUp;
+                Grid.SetColumn(border, i);
+                whiteKeysGrid.Children.Add(border);
+
+                if (pk != null)
+                    _pianoKeyToBorderMap[pk.WpfKey] = border;
+            }
+
+            pianoGrid.Children.Add(whiteKeysGrid);
+
+            // === CAPA 2: Teclas negras (Canvas superpuesto) ===
+            var blackKeysCanvas = new Canvas { IsHitTestVisible = true };
+            pianoGrid.Children.Add(blackKeysCanvas);
+
+            pianoGrid.SizeChanged += (s, e2) =>
+            {
+                blackKeysCanvas.Children.Clear();
+                if (whiteKeyCount == 0) return;
+
+                double totalWidth = pianoGrid.ActualWidth;
+                double totalHeight = pianoGrid.ActualHeight;
+                double whiteKeyWidth = totalWidth / whiteKeyCount;
+                double blackKeyWidth = whiteKeyWidth * 0.58;
+                double blackKeyHeight = totalHeight * 0.62;
+
+                int whiteIndex = 0;
+                for (int i = 0; i < allNotes.Count; i++)
+                {
+                    var note = allNotes[i];
+                    if (!note.isBlack)
+                    {
+                        whiteIndex++;
+                        continue;
+                    }
+
+                    string noteId = $"{note.name}{note.octave}";
+                    scaleLookup.TryGetValue(noteId, out PianoKeyModel pk);
+
+                    double xPos = (whiteIndex * whiteKeyWidth) - (blackKeyWidth / 2);
+
+                    var border = new Border
+                    {
+                        Style = (Style)FindResource("BlackPianoKeyStyle"),
+                        Width = blackKeyWidth,
+                        Height = blackKeyHeight,
+                        Tag = pk,
+                        RenderTransformOrigin = new Point(0.5, 0),
+                        RenderTransform = new ScaleTransform(1, 1)
+                    };
+
+                    border.MouseLeftButtonDown += PianoKey_MouseLeftButtonDown;
+                    border.MouseLeftButtonUp += PianoKey_MouseLeftButtonUp;
+
+                    Canvas.SetLeft(border, xPos);
+                    Canvas.SetTop(border, 0);
+                    blackKeysCanvas.Children.Add(border);
+
+                    if (pk != null)
+                        _pianoKeyToBorderMap[pk.WpfKey] = border;
+                }
+            };
+
+            PianoContainer.Children.Add(pianoGrid);
+        }
+        #endregion
+
+        #region Piano Key Interaction
+        private void PianoKey_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is PianoKeyModel pk)
+            {
+                e.Handled = true;
+                _soundService.PlayClick();
+
+                // Visual feedback
+                string pressedResource = pk.IsBlackKey ? "PianoBlackKeyPressedColor" : "PianoWhiteKeyPressedColor";
+                border.Background = (Brush)FindResource(pressedResource);
+                AnimateKeyPress(border);
+
+                // Simulate keypress for DAW
+                _isSimulating = true;
+                _keyboardService.SimulateKeyPress(pk.KeyCode);
+                _isSimulating = false;
+            }
+        }
+
+        private void PianoKey_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is PianoKeyModel pk)
+            {
+                string normalResource = pk.IsBlackKey ? "PianoBlackKeyColor" : "PianoWhiteKeyColor";
+                border.SetResourceReference(Border.BackgroundProperty, normalResource);
+                AnimateKeyRelease(border);
+            }
+        }
+
+        private void HighlightPianoKey(Key k, bool pressed)
+        {
+            if (_currentMode != "Piano") return;
+            if (_pianoKeyToBorderMap.TryGetValue(k, out Border b))
+            {
+                var pk = b.Tag as PianoKeyModel;
+                if (pk == null) return;
+                if (pressed)
+                {
+                    string pressedResource = pk.IsBlackKey ? "PianoBlackKeyPressedColor" : "PianoWhiteKeyPressedColor";
+                    b.Background = (Brush)FindResource(pressedResource);
+                    AnimateKeyPress(b);
+                }
+                else
+                {
+                    string normalResource = pk.IsBlackKey ? "PianoBlackKeyColor" : "PianoWhiteKeyColor";
+                    b.SetResourceReference(Border.BackgroundProperty, normalResource);
+                    AnimateKeyRelease(b);
+                }
+            }
+        }
         #endregion
 
         #region Keyboard State

@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- FONDO DE LA VENTANA:
@@ -37,6 +37,19 @@
     <SolidColorBrush x:Key="KeyBackgroundPressedColor" Color="#60FFFFFF"/>
 
     <SolidColorBrush x:Key="MenuBackgroundColor" Color="#CC494949"/>
-
+    <!-- Piano & Toggle — Glassmorphism style -->
+    <LinearGradientBrush x:Key="PianoWhiteKeyColor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#35FFFFFF" Offset="0.0"/>
+        <GradientStop Color="#15FFFFFF" Offset="1.0"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PianoBlackKeyColor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#60000000" Offset="0.0"/>
+        <GradientStop Color="#90000000" Offset="1.0"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PianoWhiteKeyPressedColor" Color="#60FFFFFF"/>
+    <SolidColorBrush x:Key="PianoBlackKeyPressedColor" Color="#40FFFFFF"/>
+    <SolidColorBrush x:Key="PianoLabelColor" Color="#CCFFFFFF"/>
+    <SolidColorBrush x:Key="ModeToggleBackground" Color="#20FFFFFF"/>
+    <SolidColorBrush x:Key="ModeToggleSelectedBackground" Color="#45FFFFFF"/>
 
 </ResourceDictionary>
